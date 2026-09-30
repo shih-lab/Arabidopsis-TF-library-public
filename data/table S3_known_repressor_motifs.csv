@@ -1,0 +1,11 @@
+motif,regex,Fraction repressor,Fraction repressor or weak repressor,Number of tiles,Number of TFs,Reference
+EAR_LxLxL_strict,L.L.L,0.2884,0.5464,690,418,
+EAR_DLNxxP_strict,DLN..P,0.68,0.7867,75,55,
+EAR_DLNxP_optional,DLN.P,0.6731,0.7692,52,42,
+EAR_DLNxxxP_optional,DLN...P,0.5517,0.6207,29,42,
+WUS_box_TLxLFP,TL.LFP(..)?,0.9167,1.0,12,7,
+TIFY_TIFY,TIFY,0.2381,0.5238,21,13,
+TPL_LFG,[RK]LFG[VI],0.84,0.92,50,36,
+LxLxxPP,L.L..PP,0.0714,0.2857,28,23,
+TLLLFR,TLLLFR,0.0,0.0,0,1,
+FDLNLP,FDLNLP,1.0,1.0,2,2,

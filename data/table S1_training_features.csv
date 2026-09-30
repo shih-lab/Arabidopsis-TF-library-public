@@ -1,0 +1,963 @@
+feature_name,description
+tile_intrinsic_disorder,Mean per-residue intrinsic disorder of the tile sequence from metapredict.
+tile_context_disorder,Mean per-residue intrinsic disorder of the tile sequence in its TF context from metapredict.
+frac_A,Fraction of amino acid A in the tile sequence.
+frac_C,Fraction of amino acid C in the tile sequence.
+frac_D,Fraction of amino acid D in the tile sequence.
+frac_E,Fraction of amino acid E in the tile sequence.
+frac_F,Fraction of amino acid F in the tile sequence.
+frac_G,Fraction of amino acid G in the tile sequence.
+frac_H,Fraction of amino acid H in the tile sequence.
+frac_I,Fraction of amino acid I in the tile sequence.
+frac_K,Fraction of amino acid K in the tile sequence.
+frac_L,Fraction of amino acid L in the tile sequence.
+frac_M,Fraction of amino acid M in the tile sequence.
+frac_N,Fraction of amino acid N in the tile sequence.
+frac_P,Fraction of amino acid P in the tile sequence.
+frac_Q,Fraction of amino acid Q in the tile sequence.
+frac_R,Fraction of amino acid R in the tile sequence.
+frac_S,Fraction of amino acid S in the tile sequence.
+frac_T,Fraction of amino acid T in the tile sequence.
+frac_V,Fraction of amino acid V in the tile sequence.
+frac_W,Fraction of amino acid W in the tile sequence.
+frac_Y,Fraction of amino acid Y in the tile sequence.
+frac_pos,"Fraction of positively charged residues (K,R)."
+frac_neg,"Fraction of negatively charged residues (D,E)."
+frac_polar,"Fraction of polar residues (S,T,N,Q,Y)."
+frac_nonpolar,"Fraction of nonpolar residues (A,V,I,L,M,F,W)."
+frac_hydrophobic,"Fraction of hydrophobic residues (A,V,I,L,M,F,Y,W)."
+frac_aliphatic,"Fraction of aliphatic residues (A,V,I,L)."
+frac_aromatic,"Fraction of aromatic residues (F,W,Y)."
+frac_charged,Total charged fraction (frac_pos + frac_neg).
+charge_density,Net charge per residue (frac_pos − frac_neg).
+mean_hydrophobicity,Mean Kyte–Doolittle hydrophobicity of residues in the tile.
+kappa,Das–Pappu kappa charge-patterning parameter from localCIDER (0 ≈ well-mixed charges; 1 ≈ segregated charge blocks).
+aliphatic_clustering,"Local clustering of aliphatic residues (M,L,I,V): peak count in any 7-residue window divided by the composition-expected mean (M/μ)."
+aromatic_clustering,"Local clustering of aromatic residues (F,W,Y): peak count in any 7-residue window divided by the composition-expected mean (M/μ)."
+positive_clustering,"Local clustering of positively charged residues (R,K): peak count in any 7-residue window divided by the composition-expected mean (M/μ)."
+negative_clustering,"Local clustering of negatively charged residues (D,E): peak count in any 7-residue window divided by the composition-expected mean (M/μ)."
+charged_clustering,"Local clustering of charged residues (R,K,D,E): peak count in any 7-residue window divided by the composition-expected mean (M/μ)."
+polar_uncharged_clustering,"Local clustering of polar uncharged residues (N,Q,T,S): peak count in any 7-residue window divided by the composition-expected mean (M/μ)."
+mean_helix_propensity,Mean Chou–Fasman helix propensity (Pa) across residues in the tile.
+max_hmoment,"Maximum Eisenberg hydrophobic moment over sliding 18-residue windows, assuming an α-helix (100° per residue)."
+max_hmoment_mean_hydro,Mean Eisenberg hydrophobicity of the window that maximizes max_hmoment.
+max_hmoment_start,0-based start index of the window that maximizes max_hmoment.
+aa_entropy,"Shannon entropy of amino-acid composition, normalized by log2(20) (1 = uniform over 20 amino acids)."
+XX_AA,Normalized frequency of adjacent dipeptide AA (count / (L−1)).
+XX_AC,Normalized frequency of adjacent dipeptide AC (count / (L−1)).
+XX_AD,Normalized frequency of adjacent dipeptide AD (count / (L−1)).
+XX_AE,Normalized frequency of adjacent dipeptide AE (count / (L−1)).
+XX_AF,Normalized frequency of adjacent dipeptide AF (count / (L−1)).
+XX_AG,Normalized frequency of adjacent dipeptide AG (count / (L−1)).
+XX_AH,Normalized frequency of adjacent dipeptide AH (count / (L−1)).
+XX_AI,Normalized frequency of adjacent dipeptide AI (count / (L−1)).
+XX_AK,Normalized frequency of adjacent dipeptide AK (count / (L−1)).
+XX_AL,Normalized frequency of adjacent dipeptide AL (count / (L−1)).
+XX_AM,Normalized frequency of adjacent dipeptide AM (count / (L−1)).
+XX_AN,Normalized frequency of adjacent dipeptide AN (count / (L−1)).
+XX_AP,Normalized frequency of adjacent dipeptide AP (count / (L−1)).
+XX_AQ,Normalized frequency of adjacent dipeptide AQ (count / (L−1)).
+XX_AR,Normalized frequency of adjacent dipeptide AR (count / (L−1)).
+XX_AS,Normalized frequency of adjacent dipeptide AS (count / (L−1)).
+XX_AT,Normalized frequency of adjacent dipeptide AT (count / (L−1)).
+XX_AV,Normalized frequency of adjacent dipeptide AV (count / (L−1)).
+XX_AW,Normalized frequency of adjacent dipeptide AW (count / (L−1)).
+XX_AY,Normalized frequency of adjacent dipeptide AY (count / (L−1)).
+XX_CA,Normalized frequency of adjacent dipeptide CA (count / (L−1)).
+XX_CC,Normalized frequency of adjacent dipeptide CC (count / (L−1)).
+XX_CD,Normalized frequency of adjacent dipeptide CD (count / (L−1)).
+XX_CE,Normalized frequency of adjacent dipeptide CE (count / (L−1)).
+XX_CF,Normalized frequency of adjacent dipeptide CF (count / (L−1)).
+XX_CG,Normalized frequency of adjacent dipeptide CG (count / (L−1)).
+XX_CH,Normalized frequency of adjacent dipeptide CH (count / (L−1)).
+XX_CI,Normalized frequency of adjacent dipeptide CI (count / (L−1)).
+XX_CK,Normalized frequency of adjacent dipeptide CK (count / (L−1)).
+XX_CL,Normalized frequency of adjacent dipeptide CL (count / (L−1)).
+XX_CM,Normalized frequency of adjacent dipeptide CM (count / (L−1)).
+XX_CN,Normalized frequency of adjacent dipeptide CN (count / (L−1)).
+XX_CP,Normalized frequency of adjacent dipeptide CP (count / (L−1)).
+XX_CQ,Normalized frequency of adjacent dipeptide CQ (count / (L−1)).
+XX_CR,Normalized frequency of adjacent dipeptide CR (count / (L−1)).
+XX_CS,Normalized frequency of adjacent dipeptide CS (count / (L−1)).
+XX_CT,Normalized frequency of adjacent dipeptide CT (count / (L−1)).
+XX_CV,Normalized frequency of adjacent dipeptide CV (count / (L−1)).
+XX_CW,Normalized frequency of adjacent dipeptide CW (count / (L−1)).
+XX_CY,Normalized frequency of adjacent dipeptide CY (count / (L−1)).
+XX_DA,Normalized frequency of adjacent dipeptide DA (count / (L−1)).
+XX_DC,Normalized frequency of adjacent dipeptide DC (count / (L−1)).
+XX_DD,Normalized frequency of adjacent dipeptide DD (count / (L−1)).
+XX_DE,Normalized frequency of adjacent dipeptide DE (count / (L−1)).
+XX_DF,Normalized frequency of adjacent dipeptide DF (count / (L−1)).
+XX_DG,Normalized frequency of adjacent dipeptide DG (count / (L−1)).
+XX_DH,Normalized frequency of adjacent dipeptide DH (count / (L−1)).
+XX_DI,Normalized frequency of adjacent dipeptide DI (count / (L−1)).
+XX_DK,Normalized frequency of adjacent dipeptide DK (count / (L−1)).
+XX_DL,Normalized frequency of adjacent dipeptide DL (count / (L−1)).
+XX_DM,Normalized frequency of adjacent dipeptide DM (count / (L−1)).
+XX_DN,Normalized frequency of adjacent dipeptide DN (count / (L−1)).
+XX_DP,Normalized frequency of adjacent dipeptide DP (count / (L−1)).
+XX_DQ,Normalized frequency of adjacent dipeptide DQ (count / (L−1)).
+XX_DR,Normalized frequency of adjacent dipeptide DR (count / (L−1)).
+XX_DS,Normalized frequency of adjacent dipeptide DS (count / (L−1)).
+XX_DT,Normalized frequency of adjacent dipeptide DT (count / (L−1)).
+XX_DV,Normalized frequency of adjacent dipeptide DV (count / (L−1)).
+XX_DW,Normalized frequency of adjacent dipeptide DW (count / (L−1)).
+XX_DY,Normalized frequency of adjacent dipeptide DY (count / (L−1)).
+XX_EA,Normalized frequency of adjacent dipeptide EA (count / (L−1)).
+XX_EC,Normalized frequency of adjacent dipeptide EC (count / (L−1)).
+XX_ED,Normalized frequency of adjacent dipeptide ED (count / (L−1)).
+XX_EE,Normalized frequency of adjacent dipeptide EE (count / (L−1)).
+XX_EF,Normalized frequency of adjacent dipeptide EF (count / (L−1)).
+XX_EG,Normalized frequency of adjacent dipeptide EG (count / (L−1)).
+XX_EH,Normalized frequency of adjacent dipeptide EH (count / (L−1)).
+XX_EI,Normalized frequency of adjacent dipeptide EI (count / (L−1)).
+XX_EK,Normalized frequency of adjacent dipeptide EK (count / (L−1)).
+XX_EL,Normalized frequency of adjacent dipeptide EL (count / (L−1)).
+XX_EM,Normalized frequency of adjacent dipeptide EM (count / (L−1)).
+XX_EN,Normalized frequency of adjacent dipeptide EN (count / (L−1)).
+XX_EP,Normalized frequency of adjacent dipeptide EP (count / (L−1)).
+XX_EQ,Normalized frequency of adjacent dipeptide EQ (count / (L−1)).
+XX_ER,Normalized frequency of adjacent dipeptide ER (count / (L−1)).
+XX_ES,Normalized frequency of adjacent dipeptide ES (count / (L−1)).
+XX_ET,Normalized frequency of adjacent dipeptide ET (count / (L−1)).
+XX_EV,Normalized frequency of adjacent dipeptide EV (count / (L−1)).
+XX_EW,Normalized frequency of adjacent dipeptide EW (count / (L−1)).
+XX_EY,Normalized frequency of adjacent dipeptide EY (count / (L−1)).
+XX_FA,Normalized frequency of adjacent dipeptide FA (count / (L−1)).
+XX_FC,Normalized frequency of adjacent dipeptide FC (count / (L−1)).
+XX_FD,Normalized frequency of adjacent dipeptide FD (count / (L−1)).
+XX_FE,Normalized frequency of adjacent dipeptide FE (count / (L−1)).
+XX_FF,Normalized frequency of adjacent dipeptide FF (count / (L−1)).
+XX_FG,Normalized frequency of adjacent dipeptide FG (count / (L−1)).
+XX_FH,Normalized frequency of adjacent dipeptide FH (count / (L−1)).
+XX_FI,Normalized frequency of adjacent dipeptide FI (count / (L−1)).
+XX_FK,Normalized frequency of adjacent dipeptide FK (count / (L−1)).
+XX_FL,Normalized frequency of adjacent dipeptide FL (count / (L−1)).
+XX_FM,Normalized frequency of adjacent dipeptide FM (count / (L−1)).
+XX_FN,Normalized frequency of adjacent dipeptide FN (count / (L−1)).
+XX_FP,Normalized frequency of adjacent dipeptide FP (count / (L−1)).
+XX_FQ,Normalized frequency of adjacent dipeptide FQ (count / (L−1)).
+XX_FR,Normalized frequency of adjacent dipeptide FR (count / (L−1)).
+XX_FS,Normalized frequency of adjacent dipeptide FS (count / (L−1)).
+XX_FT,Normalized frequency of adjacent dipeptide FT (count / (L−1)).
+XX_FV,Normalized frequency of adjacent dipeptide FV (count / (L−1)).
+XX_FW,Normalized frequency of adjacent dipeptide FW (count / (L−1)).
+XX_FY,Normalized frequency of adjacent dipeptide FY (count / (L−1)).
+XX_GA,Normalized frequency of adjacent dipeptide GA (count / (L−1)).
+XX_GC,Normalized frequency of adjacent dipeptide GC (count / (L−1)).
+XX_GD,Normalized frequency of adjacent dipeptide GD (count / (L−1)).
+XX_GE,Normalized frequency of adjacent dipeptide GE (count / (L−1)).
+XX_GF,Normalized frequency of adjacent dipeptide GF (count / (L−1)).
+XX_GG,Normalized frequency of adjacent dipeptide GG (count / (L−1)).
+XX_GH,Normalized frequency of adjacent dipeptide GH (count / (L−1)).
+XX_GI,Normalized frequency of adjacent dipeptide GI (count / (L−1)).
+XX_GK,Normalized frequency of adjacent dipeptide GK (count / (L−1)).
+XX_GL,Normalized frequency of adjacent dipeptide GL (count / (L−1)).
+XX_GM,Normalized frequency of adjacent dipeptide GM (count / (L−1)).
+XX_GN,Normalized frequency of adjacent dipeptide GN (count / (L−1)).
+XX_GP,Normalized frequency of adjacent dipeptide GP (count / (L−1)).
+XX_GQ,Normalized frequency of adjacent dipeptide GQ (count / (L−1)).
+XX_GR,Normalized frequency of adjacent dipeptide GR (count / (L−1)).
+XX_GS,Normalized frequency of adjacent dipeptide GS (count / (L−1)).
+XX_GT,Normalized frequency of adjacent dipeptide GT (count / (L−1)).
+XX_GV,Normalized frequency of adjacent dipeptide GV (count / (L−1)).
+XX_GW,Normalized frequency of adjacent dipeptide GW (count / (L−1)).
+XX_GY,Normalized frequency of adjacent dipeptide GY (count / (L−1)).
+XX_HA,Normalized frequency of adjacent dipeptide HA (count / (L−1)).
+XX_HC,Normalized frequency of adjacent dipeptide HC (count / (L−1)).
+XX_HD,Normalized frequency of adjacent dipeptide HD (count / (L−1)).
+XX_HE,Normalized frequency of adjacent dipeptide HE (count / (L−1)).
+XX_HF,Normalized frequency of adjacent dipeptide HF (count / (L−1)).
+XX_HG,Normalized frequency of adjacent dipeptide HG (count / (L−1)).
+XX_HH,Normalized frequency of adjacent dipeptide HH (count / (L−1)).
+XX_HI,Normalized frequency of adjacent dipeptide HI (count / (L−1)).
+XX_HK,Normalized frequency of adjacent dipeptide HK (count / (L−1)).
+XX_HL,Normalized frequency of adjacent dipeptide HL (count / (L−1)).
+XX_HM,Normalized frequency of adjacent dipeptide HM (count / (L−1)).
+XX_HN,Normalized frequency of adjacent dipeptide HN (count / (L−1)).
+XX_HP,Normalized frequency of adjacent dipeptide HP (count / (L−1)).
+XX_HQ,Normalized frequency of adjacent dipeptide HQ (count / (L−1)).
+XX_HR,Normalized frequency of adjacent dipeptide HR (count / (L−1)).
+XX_HS,Normalized frequency of adjacent dipeptide HS (count / (L−1)).
+XX_HT,Normalized frequency of adjacent dipeptide HT (count / (L−1)).
+XX_HV,Normalized frequency of adjacent dipeptide HV (count / (L−1)).
+XX_HW,Normalized frequency of adjacent dipeptide HW (count / (L−1)).
+XX_HY,Normalized frequency of adjacent dipeptide HY (count / (L−1)).
+XX_IA,Normalized frequency of adjacent dipeptide IA (count / (L−1)).
+XX_IC,Normalized frequency of adjacent dipeptide IC (count / (L−1)).
+XX_ID,Normalized frequency of adjacent dipeptide ID (count / (L−1)).
+XX_IE,Normalized frequency of adjacent dipeptide IE (count / (L−1)).
+XX_IF,Normalized frequency of adjacent dipeptide IF (count / (L−1)).
+XX_IG,Normalized frequency of adjacent dipeptide IG (count / (L−1)).
+XX_IH,Normalized frequency of adjacent dipeptide IH (count / (L−1)).
+XX_II,Normalized frequency of adjacent dipeptide II (count / (L−1)).
+XX_IK,Normalized frequency of adjacent dipeptide IK (count / (L−1)).
+XX_IL,Normalized frequency of adjacent dipeptide IL (count / (L−1)).
+XX_IM,Normalized frequency of adjacent dipeptide IM (count / (L−1)).
+XX_IN,Normalized frequency of adjacent dipeptide IN (count / (L−1)).
+XX_IP,Normalized frequency of adjacent dipeptide IP (count / (L−1)).
+XX_IQ,Normalized frequency of adjacent dipeptide IQ (count / (L−1)).
+XX_IR,Normalized frequency of adjacent dipeptide IR (count / (L−1)).
+XX_IS,Normalized frequency of adjacent dipeptide IS (count / (L−1)).
+XX_IT,Normalized frequency of adjacent dipeptide IT (count / (L−1)).
+XX_IV,Normalized frequency of adjacent dipeptide IV (count / (L−1)).
+XX_IW,Normalized frequency of adjacent dipeptide IW (count / (L−1)).
+XX_IY,Normalized frequency of adjacent dipeptide IY (count / (L−1)).
+XX_KA,Normalized frequency of adjacent dipeptide KA (count / (L−1)).
+XX_KC,Normalized frequency of adjacent dipeptide KC (count / (L−1)).
+XX_KD,Normalized frequency of adjacent dipeptide KD (count / (L−1)).
+XX_KE,Normalized frequency of adjacent dipeptide KE (count / (L−1)).
+XX_KF,Normalized frequency of adjacent dipeptide KF (count / (L−1)).
+XX_KG,Normalized frequency of adjacent dipeptide KG (count / (L−1)).
+XX_KH,Normalized frequency of adjacent dipeptide KH (count / (L−1)).
+XX_KI,Normalized frequency of adjacent dipeptide KI (count / (L−1)).
+XX_KK,Normalized frequency of adjacent dipeptide KK (count / (L−1)).
+XX_KL,Normalized frequency of adjacent dipeptide KL (count / (L−1)).
+XX_KM,Normalized frequency of adjacent dipeptide KM (count / (L−1)).
+XX_KN,Normalized frequency of adjacent dipeptide KN (count / (L−1)).
+XX_KP,Normalized frequency of adjacent dipeptide KP (count / (L−1)).
+XX_KQ,Normalized frequency of adjacent dipeptide KQ (count / (L−1)).
+XX_KR,Normalized frequency of adjacent dipeptide KR (count / (L−1)).
+XX_KS,Normalized frequency of adjacent dipeptide KS (count / (L−1)).
+XX_KT,Normalized frequency of adjacent dipeptide KT (count / (L−1)).
+XX_KV,Normalized frequency of adjacent dipeptide KV (count / (L−1)).
+XX_KW,Normalized frequency of adjacent dipeptide KW (count / (L−1)).
+XX_KY,Normalized frequency of adjacent dipeptide KY (count / (L−1)).
+XX_LA,Normalized frequency of adjacent dipeptide LA (count / (L−1)).
+XX_LC,Normalized frequency of adjacent dipeptide LC (count / (L−1)).
+XX_LD,Normalized frequency of adjacent dipeptide LD (count / (L−1)).
+XX_LE,Normalized frequency of adjacent dipeptide LE (count / (L−1)).
+XX_LF,Normalized frequency of adjacent dipeptide LF (count / (L−1)).
+XX_LG,Normalized frequency of adjacent dipeptide LG (count / (L−1)).
+XX_LH,Normalized frequency of adjacent dipeptide LH (count / (L−1)).
+XX_LI,Normalized frequency of adjacent dipeptide LI (count / (L−1)).
+XX_LK,Normalized frequency of adjacent dipeptide LK (count / (L−1)).
+XX_LL,Normalized frequency of adjacent dipeptide LL (count / (L−1)).
+XX_LM,Normalized frequency of adjacent dipeptide LM (count / (L−1)).
+XX_LN,Normalized frequency of adjacent dipeptide LN (count / (L−1)).
+XX_LP,Normalized frequency of adjacent dipeptide LP (count / (L−1)).
+XX_LQ,Normalized frequency of adjacent dipeptide LQ (count / (L−1)).
+XX_LR,Normalized frequency of adjacent dipeptide LR (count / (L−1)).
+XX_LS,Normalized frequency of adjacent dipeptide LS (count / (L−1)).
+XX_LT,Normalized frequency of adjacent dipeptide LT (count / (L−1)).
+XX_LV,Normalized frequency of adjacent dipeptide LV (count / (L−1)).
+XX_LW,Normalized frequency of adjacent dipeptide LW (count / (L−1)).
+XX_LY,Normalized frequency of adjacent dipeptide LY (count / (L−1)).
+XX_MA,Normalized frequency of adjacent dipeptide MA (count / (L−1)).
+XX_MC,Normalized frequency of adjacent dipeptide MC (count / (L−1)).
+XX_MD,Normalized frequency of adjacent dipeptide MD (count / (L−1)).
+XX_ME,Normalized frequency of adjacent dipeptide ME (count / (L−1)).
+XX_MF,Normalized frequency of adjacent dipeptide MF (count / (L−1)).
+XX_MG,Normalized frequency of adjacent dipeptide MG (count / (L−1)).
+XX_MH,Normalized frequency of adjacent dipeptide MH (count / (L−1)).
+XX_MI,Normalized frequency of adjacent dipeptide MI (count / (L−1)).
+XX_MK,Normalized frequency of adjacent dipeptide MK (count / (L−1)).
+XX_ML,Normalized frequency of adjacent dipeptide ML (count / (L−1)).
+XX_MM,Normalized frequency of adjacent dipeptide MM (count / (L−1)).
+XX_MN,Normalized frequency of adjacent dipeptide MN (count / (L−1)).
+XX_MP,Normalized frequency of adjacent dipeptide MP (count / (L−1)).
+XX_MQ,Normalized frequency of adjacent dipeptide MQ (count / (L−1)).
+XX_MR,Normalized frequency of adjacent dipeptide MR (count / (L−1)).
+XX_MS,Normalized frequency of adjacent dipeptide MS (count / (L−1)).
+XX_MT,Normalized frequency of adjacent dipeptide MT (count / (L−1)).
+XX_MV,Normalized frequency of adjacent dipeptide MV (count / (L−1)).
+XX_MW,Normalized frequency of adjacent dipeptide MW (count / (L−1)).
+XX_MY,Normalized frequency of adjacent dipeptide MY (count / (L−1)).
+XX_NA,Normalized frequency of adjacent dipeptide NA (count / (L−1)).
+XX_NC,Normalized frequency of adjacent dipeptide NC (count / (L−1)).
+XX_ND,Normalized frequency of adjacent dipeptide ND (count / (L−1)).
+XX_NE,Normalized frequency of adjacent dipeptide NE (count / (L−1)).
+XX_NF,Normalized frequency of adjacent dipeptide NF (count / (L−1)).
+XX_NG,Normalized frequency of adjacent dipeptide NG (count / (L−1)).
+XX_NH,Normalized frequency of adjacent dipeptide NH (count / (L−1)).
+XX_NI,Normalized frequency of adjacent dipeptide NI (count / (L−1)).
+XX_NK,Normalized frequency of adjacent dipeptide NK (count / (L−1)).
+XX_NL,Normalized frequency of adjacent dipeptide NL (count / (L−1)).
+XX_NM,Normalized frequency of adjacent dipeptide NM (count / (L−1)).
+XX_NN,Normalized frequency of adjacent dipeptide NN (count / (L−1)).
+XX_NP,Normalized frequency of adjacent dipeptide NP (count / (L−1)).
+XX_NQ,Normalized frequency of adjacent dipeptide NQ (count / (L−1)).
+XX_NR,Normalized frequency of adjacent dipeptide NR (count / (L−1)).
+XX_NS,Normalized frequency of adjacent dipeptide NS (count / (L−1)).
+XX_NT,Normalized frequency of adjacent dipeptide NT (count / (L−1)).
+XX_NV,Normalized frequency of adjacent dipeptide NV (count / (L−1)).
+XX_NW,Normalized frequency of adjacent dipeptide NW (count / (L−1)).
+XX_NY,Normalized frequency of adjacent dipeptide NY (count / (L−1)).
+XX_PA,Normalized frequency of adjacent dipeptide PA (count / (L−1)).
+XX_PC,Normalized frequency of adjacent dipeptide PC (count / (L−1)).
+XX_PD,Normalized frequency of adjacent dipeptide PD (count / (L−1)).
+XX_PE,Normalized frequency of adjacent dipeptide PE (count / (L−1)).
+XX_PF,Normalized frequency of adjacent dipeptide PF (count / (L−1)).
+XX_PG,Normalized frequency of adjacent dipeptide PG (count / (L−1)).
+XX_PH,Normalized frequency of adjacent dipeptide PH (count / (L−1)).
+XX_PI,Normalized frequency of adjacent dipeptide PI (count / (L−1)).
+XX_PK,Normalized frequency of adjacent dipeptide PK (count / (L−1)).
+XX_PL,Normalized frequency of adjacent dipeptide PL (count / (L−1)).
+XX_PM,Normalized frequency of adjacent dipeptide PM (count / (L−1)).
+XX_PN,Normalized frequency of adjacent dipeptide PN (count / (L−1)).
+XX_PP,Normalized frequency of adjacent dipeptide PP (count / (L−1)).
+XX_PQ,Normalized frequency of adjacent dipeptide PQ (count / (L−1)).
+XX_PR,Normalized frequency of adjacent dipeptide PR (count / (L−1)).
+XX_PS,Normalized frequency of adjacent dipeptide PS (count / (L−1)).
+XX_PT,Normalized frequency of adjacent dipeptide PT (count / (L−1)).
+XX_PV,Normalized frequency of adjacent dipeptide PV (count / (L−1)).
+XX_PW,Normalized frequency of adjacent dipeptide PW (count / (L−1)).
+XX_PY,Normalized frequency of adjacent dipeptide PY (count / (L−1)).
+XX_QA,Normalized frequency of adjacent dipeptide QA (count / (L−1)).
+XX_QC,Normalized frequency of adjacent dipeptide QC (count / (L−1)).
+XX_QD,Normalized frequency of adjacent dipeptide QD (count / (L−1)).
+XX_QE,Normalized frequency of adjacent dipeptide QE (count / (L−1)).
+XX_QF,Normalized frequency of adjacent dipeptide QF (count / (L−1)).
+XX_QG,Normalized frequency of adjacent dipeptide QG (count / (L−1)).
+XX_QH,Normalized frequency of adjacent dipeptide QH (count / (L−1)).
+XX_QI,Normalized frequency of adjacent dipeptide QI (count / (L−1)).
+XX_QK,Normalized frequency of adjacent dipeptide QK (count / (L−1)).
+XX_QL,Normalized frequency of adjacent dipeptide QL (count / (L−1)).
+XX_QM,Normalized frequency of adjacent dipeptide QM (count / (L−1)).
+XX_QN,Normalized frequency of adjacent dipeptide QN (count / (L−1)).
+XX_QP,Normalized frequency of adjacent dipeptide QP (count / (L−1)).
+XX_QQ,Normalized frequency of adjacent dipeptide QQ (count / (L−1)).
+XX_QR,Normalized frequency of adjacent dipeptide QR (count / (L−1)).
+XX_QS,Normalized frequency of adjacent dipeptide QS (count / (L−1)).
+XX_QT,Normalized frequency of adjacent dipeptide QT (count / (L−1)).
+XX_QV,Normalized frequency of adjacent dipeptide QV (count / (L−1)).
+XX_QW,Normalized frequency of adjacent dipeptide QW (count / (L−1)).
+XX_QY,Normalized frequency of adjacent dipeptide QY (count / (L−1)).
+XX_RA,Normalized frequency of adjacent dipeptide RA (count / (L−1)).
+XX_RC,Normalized frequency of adjacent dipeptide RC (count / (L−1)).
+XX_RD,Normalized frequency of adjacent dipeptide RD (count / (L−1)).
+XX_RE,Normalized frequency of adjacent dipeptide RE (count / (L−1)).
+XX_RF,Normalized frequency of adjacent dipeptide RF (count / (L−1)).
+XX_RG,Normalized frequency of adjacent dipeptide RG (count / (L−1)).
+XX_RH,Normalized frequency of adjacent dipeptide RH (count / (L−1)).
+XX_RI,Normalized frequency of adjacent dipeptide RI (count / (L−1)).
+XX_RK,Normalized frequency of adjacent dipeptide RK (count / (L−1)).
+XX_RL,Normalized frequency of adjacent dipeptide RL (count / (L−1)).
+XX_RM,Normalized frequency of adjacent dipeptide RM (count / (L−1)).
+XX_RN,Normalized frequency of adjacent dipeptide RN (count / (L−1)).
+XX_RP,Normalized frequency of adjacent dipeptide RP (count / (L−1)).
+XX_RQ,Normalized frequency of adjacent dipeptide RQ (count / (L−1)).
+XX_RR,Normalized frequency of adjacent dipeptide RR (count / (L−1)).
+XX_RS,Normalized frequency of adjacent dipeptide RS (count / (L−1)).
+XX_RT,Normalized frequency of adjacent dipeptide RT (count / (L−1)).
+XX_RV,Normalized frequency of adjacent dipeptide RV (count / (L−1)).
+XX_RW,Normalized frequency of adjacent dipeptide RW (count / (L−1)).
+XX_RY,Normalized frequency of adjacent dipeptide RY (count / (L−1)).
+XX_SA,Normalized frequency of adjacent dipeptide SA (count / (L−1)).
+XX_SC,Normalized frequency of adjacent dipeptide SC (count / (L−1)).
+XX_SD,Normalized frequency of adjacent dipeptide SD (count / (L−1)).
+XX_SE,Normalized frequency of adjacent dipeptide SE (count / (L−1)).
+XX_SF,Normalized frequency of adjacent dipeptide SF (count / (L−1)).
+XX_SG,Normalized frequency of adjacent dipeptide SG (count / (L−1)).
+XX_SH,Normalized frequency of adjacent dipeptide SH (count / (L−1)).
+XX_SI,Normalized frequency of adjacent dipeptide SI (count / (L−1)).
+XX_SK,Normalized frequency of adjacent dipeptide SK (count / (L−1)).
+XX_SL,Normalized frequency of adjacent dipeptide SL (count / (L−1)).
+XX_SM,Normalized frequency of adjacent dipeptide SM (count / (L−1)).
+XX_SN,Normalized frequency of adjacent dipeptide SN (count / (L−1)).
+XX_SP,Normalized frequency of adjacent dipeptide SP (count / (L−1)).
+XX_SQ,Normalized frequency of adjacent dipeptide SQ (count / (L−1)).
+XX_SR,Normalized frequency of adjacent dipeptide SR (count / (L−1)).
+XX_SS,Normalized frequency of adjacent dipeptide SS (count / (L−1)).
+XX_ST,Normalized frequency of adjacent dipeptide ST (count / (L−1)).
+XX_SV,Normalized frequency of adjacent dipeptide SV (count / (L−1)).
+XX_SW,Normalized frequency of adjacent dipeptide SW (count / (L−1)).
+XX_SY,Normalized frequency of adjacent dipeptide SY (count / (L−1)).
+XX_TA,Normalized frequency of adjacent dipeptide TA (count / (L−1)).
+XX_TC,Normalized frequency of adjacent dipeptide TC (count / (L−1)).
+XX_TD,Normalized frequency of adjacent dipeptide TD (count / (L−1)).
+XX_TE,Normalized frequency of adjacent dipeptide TE (count / (L−1)).
+XX_TF,Normalized frequency of adjacent dipeptide TF (count / (L−1)).
+XX_TG,Normalized frequency of adjacent dipeptide TG (count / (L−1)).
+XX_TH,Normalized frequency of adjacent dipeptide TH (count / (L−1)).
+XX_TI,Normalized frequency of adjacent dipeptide TI (count / (L−1)).
+XX_TK,Normalized frequency of adjacent dipeptide TK (count / (L−1)).
+XX_TL,Normalized frequency of adjacent dipeptide TL (count / (L−1)).
+XX_TM,Normalized frequency of adjacent dipeptide TM (count / (L−1)).
+XX_TN,Normalized frequency of adjacent dipeptide TN (count / (L−1)).
+XX_TP,Normalized frequency of adjacent dipeptide TP (count / (L−1)).
+XX_TQ,Normalized frequency of adjacent dipeptide TQ (count / (L−1)).
+XX_TR,Normalized frequency of adjacent dipeptide TR (count / (L−1)).
+XX_TS,Normalized frequency of adjacent dipeptide TS (count / (L−1)).
+XX_TT,Normalized frequency of adjacent dipeptide TT (count / (L−1)).
+XX_TV,Normalized frequency of adjacent dipeptide TV (count / (L−1)).
+XX_TW,Normalized frequency of adjacent dipeptide TW (count / (L−1)).
+XX_TY,Normalized frequency of adjacent dipeptide TY (count / (L−1)).
+XX_VA,Normalized frequency of adjacent dipeptide VA (count / (L−1)).
+XX_VC,Normalized frequency of adjacent dipeptide VC (count / (L−1)).
+XX_VD,Normalized frequency of adjacent dipeptide VD (count / (L−1)).
+XX_VE,Normalized frequency of adjacent dipeptide VE (count / (L−1)).
+XX_VF,Normalized frequency of adjacent dipeptide VF (count / (L−1)).
+XX_VG,Normalized frequency of adjacent dipeptide VG (count / (L−1)).
+XX_VH,Normalized frequency of adjacent dipeptide VH (count / (L−1)).
+XX_VI,Normalized frequency of adjacent dipeptide VI (count / (L−1)).
+XX_VK,Normalized frequency of adjacent dipeptide VK (count / (L−1)).
+XX_VL,Normalized frequency of adjacent dipeptide VL (count / (L−1)).
+XX_VM,Normalized frequency of adjacent dipeptide VM (count / (L−1)).
+XX_VN,Normalized frequency of adjacent dipeptide VN (count / (L−1)).
+XX_VP,Normalized frequency of adjacent dipeptide VP (count / (L−1)).
+XX_VQ,Normalized frequency of adjacent dipeptide VQ (count / (L−1)).
+XX_VR,Normalized frequency of adjacent dipeptide VR (count / (L−1)).
+XX_VS,Normalized frequency of adjacent dipeptide VS (count / (L−1)).
+XX_VT,Normalized frequency of adjacent dipeptide VT (count / (L−1)).
+XX_VV,Normalized frequency of adjacent dipeptide VV (count / (L−1)).
+XX_VW,Normalized frequency of adjacent dipeptide VW (count / (L−1)).
+XX_VY,Normalized frequency of adjacent dipeptide VY (count / (L−1)).
+XX_WA,Normalized frequency of adjacent dipeptide WA (count / (L−1)).
+XX_WC,Normalized frequency of adjacent dipeptide WC (count / (L−1)).
+XX_WD,Normalized frequency of adjacent dipeptide WD (count / (L−1)).
+XX_WE,Normalized frequency of adjacent dipeptide WE (count / (L−1)).
+XX_WF,Normalized frequency of adjacent dipeptide WF (count / (L−1)).
+XX_WG,Normalized frequency of adjacent dipeptide WG (count / (L−1)).
+XX_WH,Normalized frequency of adjacent dipeptide WH (count / (L−1)).
+XX_WI,Normalized frequency of adjacent dipeptide WI (count / (L−1)).
+XX_WK,Normalized frequency of adjacent dipeptide WK (count / (L−1)).
+XX_WL,Normalized frequency of adjacent dipeptide WL (count / (L−1)).
+XX_WM,Normalized frequency of adjacent dipeptide WM (count / (L−1)).
+XX_WN,Normalized frequency of adjacent dipeptide WN (count / (L−1)).
+XX_WP,Normalized frequency of adjacent dipeptide WP (count / (L−1)).
+XX_WQ,Normalized frequency of adjacent dipeptide WQ (count / (L−1)).
+XX_WR,Normalized frequency of adjacent dipeptide WR (count / (L−1)).
+XX_WS,Normalized frequency of adjacent dipeptide WS (count / (L−1)).
+XX_WT,Normalized frequency of adjacent dipeptide WT (count / (L−1)).
+XX_WV,Normalized frequency of adjacent dipeptide WV (count / (L−1)).
+XX_WW,Normalized frequency of adjacent dipeptide WW (count / (L−1)).
+XX_WY,Normalized frequency of adjacent dipeptide WY (count / (L−1)).
+XX_YA,Normalized frequency of adjacent dipeptide YA (count / (L−1)).
+XX_YC,Normalized frequency of adjacent dipeptide YC (count / (L−1)).
+XX_YD,Normalized frequency of adjacent dipeptide YD (count / (L−1)).
+XX_YE,Normalized frequency of adjacent dipeptide YE (count / (L−1)).
+XX_YF,Normalized frequency of adjacent dipeptide YF (count / (L−1)).
+XX_YG,Normalized frequency of adjacent dipeptide YG (count / (L−1)).
+XX_YH,Normalized frequency of adjacent dipeptide YH (count / (L−1)).
+XX_YI,Normalized frequency of adjacent dipeptide YI (count / (L−1)).
+XX_YK,Normalized frequency of adjacent dipeptide YK (count / (L−1)).
+XX_YL,Normalized frequency of adjacent dipeptide YL (count / (L−1)).
+XX_YM,Normalized frequency of adjacent dipeptide YM (count / (L−1)).
+XX_YN,Normalized frequency of adjacent dipeptide YN (count / (L−1)).
+XX_YP,Normalized frequency of adjacent dipeptide YP (count / (L−1)).
+XX_YQ,Normalized frequency of adjacent dipeptide YQ (count / (L−1)).
+XX_YR,Normalized frequency of adjacent dipeptide YR (count / (L−1)).
+XX_YS,Normalized frequency of adjacent dipeptide YS (count / (L−1)).
+XX_YT,Normalized frequency of adjacent dipeptide YT (count / (L−1)).
+XX_YV,Normalized frequency of adjacent dipeptide YV (count / (L−1)).
+XX_YW,Normalized frequency of adjacent dipeptide YW (count / (L−1)).
+XX_YY,Normalized frequency of adjacent dipeptide YY (count / (L−1)).
+XUX_AA,Normalized frequency of 1-gap dipeptide AXA (residues at i and i+2; count / (L−2)).
+XUX_AC,Normalized frequency of 1-gap dipeptide AXC (residues at i and i+2; count / (L−2)).
+XUX_AD,Normalized frequency of 1-gap dipeptide AXD (residues at i and i+2; count / (L−2)).
+XUX_AE,Normalized frequency of 1-gap dipeptide AXE (residues at i and i+2; count / (L−2)).
+XUX_AF,Normalized frequency of 1-gap dipeptide AXF (residues at i and i+2; count / (L−2)).
+XUX_AG,Normalized frequency of 1-gap dipeptide AXG (residues at i and i+2; count / (L−2)).
+XUX_AH,Normalized frequency of 1-gap dipeptide AXH (residues at i and i+2; count / (L−2)).
+XUX_AI,Normalized frequency of 1-gap dipeptide AXI (residues at i and i+2; count / (L−2)).
+XUX_AK,Normalized frequency of 1-gap dipeptide AXK (residues at i and i+2; count / (L−2)).
+XUX_AL,Normalized frequency of 1-gap dipeptide AXL (residues at i and i+2; count / (L−2)).
+XUX_AM,Normalized frequency of 1-gap dipeptide AXM (residues at i and i+2; count / (L−2)).
+XUX_AN,Normalized frequency of 1-gap dipeptide AXN (residues at i and i+2; count / (L−2)).
+XUX_AP,Normalized frequency of 1-gap dipeptide AXP (residues at i and i+2; count / (L−2)).
+XUX_AQ,Normalized frequency of 1-gap dipeptide AXQ (residues at i and i+2; count / (L−2)).
+XUX_AR,Normalized frequency of 1-gap dipeptide AXR (residues at i and i+2; count / (L−2)).
+XUX_AS,Normalized frequency of 1-gap dipeptide AXS (residues at i and i+2; count / (L−2)).
+XUX_AT,Normalized frequency of 1-gap dipeptide AXT (residues at i and i+2; count / (L−2)).
+XUX_AV,Normalized frequency of 1-gap dipeptide AXV (residues at i and i+2; count / (L−2)).
+XUX_AW,Normalized frequency of 1-gap dipeptide AXW (residues at i and i+2; count / (L−2)).
+XUX_AY,Normalized frequency of 1-gap dipeptide AXY (residues at i and i+2; count / (L−2)).
+XUX_CA,Normalized frequency of 1-gap dipeptide CXA (residues at i and i+2; count / (L−2)).
+XUX_CC,Normalized frequency of 1-gap dipeptide CXC (residues at i and i+2; count / (L−2)).
+XUX_CD,Normalized frequency of 1-gap dipeptide CXD (residues at i and i+2; count / (L−2)).
+XUX_CE,Normalized frequency of 1-gap dipeptide CXE (residues at i and i+2; count / (L−2)).
+XUX_CF,Normalized frequency of 1-gap dipeptide CXF (residues at i and i+2; count / (L−2)).
+XUX_CG,Normalized frequency of 1-gap dipeptide CXG (residues at i and i+2; count / (L−2)).
+XUX_CH,Normalized frequency of 1-gap dipeptide CXH (residues at i and i+2; count / (L−2)).
+XUX_CI,Normalized frequency of 1-gap dipeptide CXI (residues at i and i+2; count / (L−2)).
+XUX_CK,Normalized frequency of 1-gap dipeptide CXK (residues at i and i+2; count / (L−2)).
+XUX_CL,Normalized frequency of 1-gap dipeptide CXL (residues at i and i+2; count / (L−2)).
+XUX_CM,Normalized frequency of 1-gap dipeptide CXM (residues at i and i+2; count / (L−2)).
+XUX_CN,Normalized frequency of 1-gap dipeptide CXN (residues at i and i+2; count / (L−2)).
+XUX_CP,Normalized frequency of 1-gap dipeptide CXP (residues at i and i+2; count / (L−2)).
+XUX_CQ,Normalized frequency of 1-gap dipeptide CXQ (residues at i and i+2; count / (L−2)).
+XUX_CR,Normalized frequency of 1-gap dipeptide CXR (residues at i and i+2; count / (L−2)).
+XUX_CS,Normalized frequency of 1-gap dipeptide CXS (residues at i and i+2; count / (L−2)).
+XUX_CT,Normalized frequency of 1-gap dipeptide CXT (residues at i and i+2; count / (L−2)).
+XUX_CV,Normalized frequency of 1-gap dipeptide CXV (residues at i and i+2; count / (L−2)).
+XUX_CW,Normalized frequency of 1-gap dipeptide CXW (residues at i and i+2; count / (L−2)).
+XUX_CY,Normalized frequency of 1-gap dipeptide CXY (residues at i and i+2; count / (L−2)).
+XUX_DA,Normalized frequency of 1-gap dipeptide DXA (residues at i and i+2; count / (L−2)).
+XUX_DC,Normalized frequency of 1-gap dipeptide DXC (residues at i and i+2; count / (L−2)).
+XUX_DD,Normalized frequency of 1-gap dipeptide DXD (residues at i and i+2; count / (L−2)).
+XUX_DE,Normalized frequency of 1-gap dipeptide DXE (residues at i and i+2; count / (L−2)).
+XUX_DF,Normalized frequency of 1-gap dipeptide DXF (residues at i and i+2; count / (L−2)).
+XUX_DG,Normalized frequency of 1-gap dipeptide DXG (residues at i and i+2; count / (L−2)).
+XUX_DH,Normalized frequency of 1-gap dipeptide DXH (residues at i and i+2; count / (L−2)).
+XUX_DI,Normalized frequency of 1-gap dipeptide DXI (residues at i and i+2; count / (L−2)).
+XUX_DK,Normalized frequency of 1-gap dipeptide DXK (residues at i and i+2; count / (L−2)).
+XUX_DL,Normalized frequency of 1-gap dipeptide DXL (residues at i and i+2; count / (L−2)).
+XUX_DM,Normalized frequency of 1-gap dipeptide DXM (residues at i and i+2; count / (L−2)).
+XUX_DN,Normalized frequency of 1-gap dipeptide DXN (residues at i and i+2; count / (L−2)).
+XUX_DP,Normalized frequency of 1-gap dipeptide DXP (residues at i and i+2; count / (L−2)).
+XUX_DQ,Normalized frequency of 1-gap dipeptide DXQ (residues at i and i+2; count / (L−2)).
+XUX_DR,Normalized frequency of 1-gap dipeptide DXR (residues at i and i+2; count / (L−2)).
+XUX_DS,Normalized frequency of 1-gap dipeptide DXS (residues at i and i+2; count / (L−2)).
+XUX_DT,Normalized frequency of 1-gap dipeptide DXT (residues at i and i+2; count / (L−2)).
+XUX_DV,Normalized frequency of 1-gap dipeptide DXV (residues at i and i+2; count / (L−2)).
+XUX_DW,Normalized frequency of 1-gap dipeptide DXW (residues at i and i+2; count / (L−2)).
+XUX_DY,Normalized frequency of 1-gap dipeptide DXY (residues at i and i+2; count / (L−2)).
+XUX_EA,Normalized frequency of 1-gap dipeptide EXA (residues at i and i+2; count / (L−2)).
+XUX_EC,Normalized frequency of 1-gap dipeptide EXC (residues at i and i+2; count / (L−2)).
+XUX_ED,Normalized frequency of 1-gap dipeptide EXD (residues at i and i+2; count / (L−2)).
+XUX_EE,Normalized frequency of 1-gap dipeptide EXE (residues at i and i+2; count / (L−2)).
+XUX_EF,Normalized frequency of 1-gap dipeptide EXF (residues at i and i+2; count / (L−2)).
+XUX_EG,Normalized frequency of 1-gap dipeptide EXG (residues at i and i+2; count / (L−2)).
+XUX_EH,Normalized frequency of 1-gap dipeptide EXH (residues at i and i+2; count / (L−2)).
+XUX_EI,Normalized frequency of 1-gap dipeptide EXI (residues at i and i+2; count / (L−2)).
+XUX_EK,Normalized frequency of 1-gap dipeptide EXK (residues at i and i+2; count / (L−2)).
+XUX_EL,Normalized frequency of 1-gap dipeptide EXL (residues at i and i+2; count / (L−2)).
+XUX_EM,Normalized frequency of 1-gap dipeptide EXM (residues at i and i+2; count / (L−2)).
+XUX_EN,Normalized frequency of 1-gap dipeptide EXN (residues at i and i+2; count / (L−2)).
+XUX_EP,Normalized frequency of 1-gap dipeptide EXP (residues at i and i+2; count / (L−2)).
+XUX_EQ,Normalized frequency of 1-gap dipeptide EXQ (residues at i and i+2; count / (L−2)).
+XUX_ER,Normalized frequency of 1-gap dipeptide EXR (residues at i and i+2; count / (L−2)).
+XUX_ES,Normalized frequency of 1-gap dipeptide EXS (residues at i and i+2; count / (L−2)).
+XUX_ET,Normalized frequency of 1-gap dipeptide EXT (residues at i and i+2; count / (L−2)).
+XUX_EV,Normalized frequency of 1-gap dipeptide EXV (residues at i and i+2; count / (L−2)).
+XUX_EW,Normalized frequency of 1-gap dipeptide EXW (residues at i and i+2; count / (L−2)).
+XUX_EY,Normalized frequency of 1-gap dipeptide EXY (residues at i and i+2; count / (L−2)).
+XUX_FA,Normalized frequency of 1-gap dipeptide FXA (residues at i and i+2; count / (L−2)).
+XUX_FC,Normalized frequency of 1-gap dipeptide FXC (residues at i and i+2; count / (L−2)).
+XUX_FD,Normalized frequency of 1-gap dipeptide FXD (residues at i and i+2; count / (L−2)).
+XUX_FE,Normalized frequency of 1-gap dipeptide FXE (residues at i and i+2; count / (L−2)).
+XUX_FF,Normalized frequency of 1-gap dipeptide FXF (residues at i and i+2; count / (L−2)).
+XUX_FG,Normalized frequency of 1-gap dipeptide FXG (residues at i and i+2; count / (L−2)).
+XUX_FH,Normalized frequency of 1-gap dipeptide FXH (residues at i and i+2; count / (L−2)).
+XUX_FI,Normalized frequency of 1-gap dipeptide FXI (residues at i and i+2; count / (L−2)).
+XUX_FK,Normalized frequency of 1-gap dipeptide FXK (residues at i and i+2; count / (L−2)).
+XUX_FL,Normalized frequency of 1-gap dipeptide FXL (residues at i and i+2; count / (L−2)).
+XUX_FM,Normalized frequency of 1-gap dipeptide FXM (residues at i and i+2; count / (L−2)).
+XUX_FN,Normalized frequency of 1-gap dipeptide FXN (residues at i and i+2; count / (L−2)).
+XUX_FP,Normalized frequency of 1-gap dipeptide FXP (residues at i and i+2; count / (L−2)).
+XUX_FQ,Normalized frequency of 1-gap dipeptide FXQ (residues at i and i+2; count / (L−2)).
+XUX_FR,Normalized frequency of 1-gap dipeptide FXR (residues at i and i+2; count / (L−2)).
+XUX_FS,Normalized frequency of 1-gap dipeptide FXS (residues at i and i+2; count / (L−2)).
+XUX_FT,Normalized frequency of 1-gap dipeptide FXT (residues at i and i+2; count / (L−2)).
+XUX_FV,Normalized frequency of 1-gap dipeptide FXV (residues at i and i+2; count / (L−2)).
+XUX_FW,Normalized frequency of 1-gap dipeptide FXW (residues at i and i+2; count / (L−2)).
+XUX_FY,Normalized frequency of 1-gap dipeptide FXY (residues at i and i+2; count / (L−2)).
+XUX_GA,Normalized frequency of 1-gap dipeptide GXA (residues at i and i+2; count / (L−2)).
+XUX_GC,Normalized frequency of 1-gap dipeptide GXC (residues at i and i+2; count / (L−2)).
+XUX_GD,Normalized frequency of 1-gap dipeptide GXD (residues at i and i+2; count / (L−2)).
+XUX_GE,Normalized frequency of 1-gap dipeptide GXE (residues at i and i+2; count / (L−2)).
+XUX_GF,Normalized frequency of 1-gap dipeptide GXF (residues at i and i+2; count / (L−2)).
+XUX_GG,Normalized frequency of 1-gap dipeptide GXG (residues at i and i+2; count / (L−2)).
+XUX_GH,Normalized frequency of 1-gap dipeptide GXH (residues at i and i+2; count / (L−2)).
+XUX_GI,Normalized frequency of 1-gap dipeptide GXI (residues at i and i+2; count / (L−2)).
+XUX_GK,Normalized frequency of 1-gap dipeptide GXK (residues at i and i+2; count / (L−2)).
+XUX_GL,Normalized frequency of 1-gap dipeptide GXL (residues at i and i+2; count / (L−2)).
+XUX_GM,Normalized frequency of 1-gap dipeptide GXM (residues at i and i+2; count / (L−2)).
+XUX_GN,Normalized frequency of 1-gap dipeptide GXN (residues at i and i+2; count / (L−2)).
+XUX_GP,Normalized frequency of 1-gap dipeptide GXP (residues at i and i+2; count / (L−2)).
+XUX_GQ,Normalized frequency of 1-gap dipeptide GXQ (residues at i and i+2; count / (L−2)).
+XUX_GR,Normalized frequency of 1-gap dipeptide GXR (residues at i and i+2; count / (L−2)).
+XUX_GS,Normalized frequency of 1-gap dipeptide GXS (residues at i and i+2; count / (L−2)).
+XUX_GT,Normalized frequency of 1-gap dipeptide GXT (residues at i and i+2; count / (L−2)).
+XUX_GV,Normalized frequency of 1-gap dipeptide GXV (residues at i and i+2; count / (L−2)).
+XUX_GW,Normalized frequency of 1-gap dipeptide GXW (residues at i and i+2; count / (L−2)).
+XUX_GY,Normalized frequency of 1-gap dipeptide GXY (residues at i and i+2; count / (L−2)).
+XUX_HA,Normalized frequency of 1-gap dipeptide HXA (residues at i and i+2; count / (L−2)).
+XUX_HC,Normalized frequency of 1-gap dipeptide HXC (residues at i and i+2; count / (L−2)).
+XUX_HD,Normalized frequency of 1-gap dipeptide HXD (residues at i and i+2; count / (L−2)).
+XUX_HE,Normalized frequency of 1-gap dipeptide HXE (residues at i and i+2; count / (L−2)).
+XUX_HF,Normalized frequency of 1-gap dipeptide HXF (residues at i and i+2; count / (L−2)).
+XUX_HG,Normalized frequency of 1-gap dipeptide HXG (residues at i and i+2; count / (L−2)).
+XUX_HH,Normalized frequency of 1-gap dipeptide HXH (residues at i and i+2; count / (L−2)).
+XUX_HI,Normalized frequency of 1-gap dipeptide HXI (residues at i and i+2; count / (L−2)).
+XUX_HK,Normalized frequency of 1-gap dipeptide HXK (residues at i and i+2; count / (L−2)).
+XUX_HL,Normalized frequency of 1-gap dipeptide HXL (residues at i and i+2; count / (L−2)).
+XUX_HM,Normalized frequency of 1-gap dipeptide HXM (residues at i and i+2; count / (L−2)).
+XUX_HN,Normalized frequency of 1-gap dipeptide HXN (residues at i and i+2; count / (L−2)).
+XUX_HP,Normalized frequency of 1-gap dipeptide HXP (residues at i and i+2; count / (L−2)).
+XUX_HQ,Normalized frequency of 1-gap dipeptide HXQ (residues at i and i+2; count / (L−2)).
+XUX_HR,Normalized frequency of 1-gap dipeptide HXR (residues at i and i+2; count / (L−2)).
+XUX_HS,Normalized frequency of 1-gap dipeptide HXS (residues at i and i+2; count / (L−2)).
+XUX_HT,Normalized frequency of 1-gap dipeptide HXT (residues at i and i+2; count / (L−2)).
+XUX_HV,Normalized frequency of 1-gap dipeptide HXV (residues at i and i+2; count / (L−2)).
+XUX_HW,Normalized frequency of 1-gap dipeptide HXW (residues at i and i+2; count / (L−2)).
+XUX_HY,Normalized frequency of 1-gap dipeptide HXY (residues at i and i+2; count / (L−2)).
+XUX_IA,Normalized frequency of 1-gap dipeptide IXA (residues at i and i+2; count / (L−2)).
+XUX_IC,Normalized frequency of 1-gap dipeptide IXC (residues at i and i+2; count / (L−2)).
+XUX_ID,Normalized frequency of 1-gap dipeptide IXD (residues at i and i+2; count / (L−2)).
+XUX_IE,Normalized frequency of 1-gap dipeptide IXE (residues at i and i+2; count / (L−2)).
+XUX_IF,Normalized frequency of 1-gap dipeptide IXF (residues at i and i+2; count / (L−2)).
+XUX_IG,Normalized frequency of 1-gap dipeptide IXG (residues at i and i+2; count / (L−2)).
+XUX_IH,Normalized frequency of 1-gap dipeptide IXH (residues at i and i+2; count / (L−2)).
+XUX_II,Normalized frequency of 1-gap dipeptide IXI (residues at i and i+2; count / (L−2)).
+XUX_IK,Normalized frequency of 1-gap dipeptide IXK (residues at i and i+2; count / (L−2)).
+XUX_IL,Normalized frequency of 1-gap dipeptide IXL (residues at i and i+2; count / (L−2)).
+XUX_IM,Normalized frequency of 1-gap dipeptide IXM (residues at i and i+2; count / (L−2)).
+XUX_IN,Normalized frequency of 1-gap dipeptide IXN (residues at i and i+2; count / (L−2)).
+XUX_IP,Normalized frequency of 1-gap dipeptide IXP (residues at i and i+2; count / (L−2)).
+XUX_IQ,Normalized frequency of 1-gap dipeptide IXQ (residues at i and i+2; count / (L−2)).
+XUX_IR,Normalized frequency of 1-gap dipeptide IXR (residues at i and i+2; count / (L−2)).
+XUX_IS,Normalized frequency of 1-gap dipeptide IXS (residues at i and i+2; count / (L−2)).
+XUX_IT,Normalized frequency of 1-gap dipeptide IXT (residues at i and i+2; count / (L−2)).
+XUX_IV,Normalized frequency of 1-gap dipeptide IXV (residues at i and i+2; count / (L−2)).
+XUX_IW,Normalized frequency of 1-gap dipeptide IXW (residues at i and i+2; count / (L−2)).
+XUX_IY,Normalized frequency of 1-gap dipeptide IXY (residues at i and i+2; count / (L−2)).
+XUX_KA,Normalized frequency of 1-gap dipeptide KXA (residues at i and i+2; count / (L−2)).
+XUX_KC,Normalized frequency of 1-gap dipeptide KXC (residues at i and i+2; count / (L−2)).
+XUX_KD,Normalized frequency of 1-gap dipeptide KXD (residues at i and i+2; count / (L−2)).
+XUX_KE,Normalized frequency of 1-gap dipeptide KXE (residues at i and i+2; count / (L−2)).
+XUX_KF,Normalized frequency of 1-gap dipeptide KXF (residues at i and i+2; count / (L−2)).
+XUX_KG,Normalized frequency of 1-gap dipeptide KXG (residues at i and i+2; count / (L−2)).
+XUX_KH,Normalized frequency of 1-gap dipeptide KXH (residues at i and i+2; count / (L−2)).
+XUX_KI,Normalized frequency of 1-gap dipeptide KXI (residues at i and i+2; count / (L−2)).
+XUX_KK,Normalized frequency of 1-gap dipeptide KXK (residues at i and i+2; count / (L−2)).
+XUX_KL,Normalized frequency of 1-gap dipeptide KXL (residues at i and i+2; count / (L−2)).
+XUX_KM,Normalized frequency of 1-gap dipeptide KXM (residues at i and i+2; count / (L−2)).
+XUX_KN,Normalized frequency of 1-gap dipeptide KXN (residues at i and i+2; count / (L−2)).
+XUX_KP,Normalized frequency of 1-gap dipeptide KXP (residues at i and i+2; count / (L−2)).
+XUX_KQ,Normalized frequency of 1-gap dipeptide KXQ (residues at i and i+2; count / (L−2)).
+XUX_KR,Normalized frequency of 1-gap dipeptide KXR (residues at i and i+2; count / (L−2)).
+XUX_KS,Normalized frequency of 1-gap dipeptide KXS (residues at i and i+2; count / (L−2)).
+XUX_KT,Normalized frequency of 1-gap dipeptide KXT (residues at i and i+2; count / (L−2)).
+XUX_KV,Normalized frequency of 1-gap dipeptide KXV (residues at i and i+2; count / (L−2)).
+XUX_KW,Normalized frequency of 1-gap dipeptide KXW (residues at i and i+2; count / (L−2)).
+XUX_KY,Normalized frequency of 1-gap dipeptide KXY (residues at i and i+2; count / (L−2)).
+XUX_LA,Normalized frequency of 1-gap dipeptide LXA (residues at i and i+2; count / (L−2)).
+XUX_LC,Normalized frequency of 1-gap dipeptide LXC (residues at i and i+2; count / (L−2)).
+XUX_LD,Normalized frequency of 1-gap dipeptide LXD (residues at i and i+2; count / (L−2)).
+XUX_LE,Normalized frequency of 1-gap dipeptide LXE (residues at i and i+2; count / (L−2)).
+XUX_LF,Normalized frequency of 1-gap dipeptide LXF (residues at i and i+2; count / (L−2)).
+XUX_LG,Normalized frequency of 1-gap dipeptide LXG (residues at i and i+2; count / (L−2)).
+XUX_LH,Normalized frequency of 1-gap dipeptide LXH (residues at i and i+2; count / (L−2)).
+XUX_LI,Normalized frequency of 1-gap dipeptide LXI (residues at i and i+2; count / (L−2)).
+XUX_LK,Normalized frequency of 1-gap dipeptide LXK (residues at i and i+2; count / (L−2)).
+XUX_LL,Normalized frequency of 1-gap dipeptide LXL (residues at i and i+2; count / (L−2)).
+XUX_LM,Normalized frequency of 1-gap dipeptide LXM (residues at i and i+2; count / (L−2)).
+XUX_LN,Normalized frequency of 1-gap dipeptide LXN (residues at i and i+2; count / (L−2)).
+XUX_LP,Normalized frequency of 1-gap dipeptide LXP (residues at i and i+2; count / (L−2)).
+XUX_LQ,Normalized frequency of 1-gap dipeptide LXQ (residues at i and i+2; count / (L−2)).
+XUX_LR,Normalized frequency of 1-gap dipeptide LXR (residues at i and i+2; count / (L−2)).
+XUX_LS,Normalized frequency of 1-gap dipeptide LXS (residues at i and i+2; count / (L−2)).
+XUX_LT,Normalized frequency of 1-gap dipeptide LXT (residues at i and i+2; count / (L−2)).
+XUX_LV,Normalized frequency of 1-gap dipeptide LXV (residues at i and i+2; count / (L−2)).
+XUX_LW,Normalized frequency of 1-gap dipeptide LXW (residues at i and i+2; count / (L−2)).
+XUX_LY,Normalized frequency of 1-gap dipeptide LXY (residues at i and i+2; count / (L−2)).
+XUX_MA,Normalized frequency of 1-gap dipeptide MXA (residues at i and i+2; count / (L−2)).
+XUX_MC,Normalized frequency of 1-gap dipeptide MXC (residues at i and i+2; count / (L−2)).
+XUX_MD,Normalized frequency of 1-gap dipeptide MXD (residues at i and i+2; count / (L−2)).
+XUX_ME,Normalized frequency of 1-gap dipeptide MXE (residues at i and i+2; count / (L−2)).
+XUX_MF,Normalized frequency of 1-gap dipeptide MXF (residues at i and i+2; count / (L−2)).
+XUX_MG,Normalized frequency of 1-gap dipeptide MXG (residues at i and i+2; count / (L−2)).
+XUX_MH,Normalized frequency of 1-gap dipeptide MXH (residues at i and i+2; count / (L−2)).
+XUX_MI,Normalized frequency of 1-gap dipeptide MXI (residues at i and i+2; count / (L−2)).
+XUX_MK,Normalized frequency of 1-gap dipeptide MXK (residues at i and i+2; count / (L−2)).
+XUX_ML,Normalized frequency of 1-gap dipeptide MXL (residues at i and i+2; count / (L−2)).
+XUX_MM,Normalized frequency of 1-gap dipeptide MXM (residues at i and i+2; count / (L−2)).
+XUX_MN,Normalized frequency of 1-gap dipeptide MXN (residues at i and i+2; count / (L−2)).
+XUX_MP,Normalized frequency of 1-gap dipeptide MXP (residues at i and i+2; count / (L−2)).
+XUX_MQ,Normalized frequency of 1-gap dipeptide MXQ (residues at i and i+2; count / (L−2)).
+XUX_MR,Normalized frequency of 1-gap dipeptide MXR (residues at i and i+2; count / (L−2)).
+XUX_MS,Normalized frequency of 1-gap dipeptide MXS (residues at i and i+2; count / (L−2)).
+XUX_MT,Normalized frequency of 1-gap dipeptide MXT (residues at i and i+2; count / (L−2)).
+XUX_MV,Normalized frequency of 1-gap dipeptide MXV (residues at i and i+2; count / (L−2)).
+XUX_MW,Normalized frequency of 1-gap dipeptide MXW (residues at i and i+2; count / (L−2)).
+XUX_MY,Normalized frequency of 1-gap dipeptide MXY (residues at i and i+2; count / (L−2)).
+XUX_NA,Normalized frequency of 1-gap dipeptide NXA (residues at i and i+2; count / (L−2)).
+XUX_NC,Normalized frequency of 1-gap dipeptide NXC (residues at i and i+2; count / (L−2)).
+XUX_ND,Normalized frequency of 1-gap dipeptide NXD (residues at i and i+2; count / (L−2)).
+XUX_NE,Normalized frequency of 1-gap dipeptide NXE (residues at i and i+2; count / (L−2)).
+XUX_NF,Normalized frequency of 1-gap dipeptide NXF (residues at i and i+2; count / (L−2)).
+XUX_NG,Normalized frequency of 1-gap dipeptide NXG (residues at i and i+2; count / (L−2)).
+XUX_NH,Normalized frequency of 1-gap dipeptide NXH (residues at i and i+2; count / (L−2)).
+XUX_NI,Normalized frequency of 1-gap dipeptide NXI (residues at i and i+2; count / (L−2)).
+XUX_NK,Normalized frequency of 1-gap dipeptide NXK (residues at i and i+2; count / (L−2)).
+XUX_NL,Normalized frequency of 1-gap dipeptide NXL (residues at i and i+2; count / (L−2)).
+XUX_NM,Normalized frequency of 1-gap dipeptide NXM (residues at i and i+2; count / (L−2)).
+XUX_NN,Normalized frequency of 1-gap dipeptide NXN (residues at i and i+2; count / (L−2)).
+XUX_NP,Normalized frequency of 1-gap dipeptide NXP (residues at i and i+2; count / (L−2)).
+XUX_NQ,Normalized frequency of 1-gap dipeptide NXQ (residues at i and i+2; count / (L−2)).
+XUX_NR,Normalized frequency of 1-gap dipeptide NXR (residues at i and i+2; count / (L−2)).
+XUX_NS,Normalized frequency of 1-gap dipeptide NXS (residues at i and i+2; count / (L−2)).
+XUX_NT,Normalized frequency of 1-gap dipeptide NXT (residues at i and i+2; count / (L−2)).
+XUX_NV,Normalized frequency of 1-gap dipeptide NXV (residues at i and i+2; count / (L−2)).
+XUX_NW,Normalized frequency of 1-gap dipeptide NXW (residues at i and i+2; count / (L−2)).
+XUX_NY,Normalized frequency of 1-gap dipeptide NXY (residues at i and i+2; count / (L−2)).
+XUX_PA,Normalized frequency of 1-gap dipeptide PXA (residues at i and i+2; count / (L−2)).
+XUX_PC,Normalized frequency of 1-gap dipeptide PXC (residues at i and i+2; count / (L−2)).
+XUX_PD,Normalized frequency of 1-gap dipeptide PXD (residues at i and i+2; count / (L−2)).
+XUX_PE,Normalized frequency of 1-gap dipeptide PXE (residues at i and i+2; count / (L−2)).
+XUX_PF,Normalized frequency of 1-gap dipeptide PXF (residues at i and i+2; count / (L−2)).
+XUX_PG,Normalized frequency of 1-gap dipeptide PXG (residues at i and i+2; count / (L−2)).
+XUX_PH,Normalized frequency of 1-gap dipeptide PXH (residues at i and i+2; count / (L−2)).
+XUX_PI,Normalized frequency of 1-gap dipeptide PXI (residues at i and i+2; count / (L−2)).
+XUX_PK,Normalized frequency of 1-gap dipeptide PXK (residues at i and i+2; count / (L−2)).
+XUX_PL,Normalized frequency of 1-gap dipeptide PXL (residues at i and i+2; count / (L−2)).
+XUX_PM,Normalized frequency of 1-gap dipeptide PXM (residues at i and i+2; count / (L−2)).
+XUX_PN,Normalized frequency of 1-gap dipeptide PXN (residues at i and i+2; count / (L−2)).
+XUX_PP,Normalized frequency of 1-gap dipeptide PXP (residues at i and i+2; count / (L−2)).
+XUX_PQ,Normalized frequency of 1-gap dipeptide PXQ (residues at i and i+2; count / (L−2)).
+XUX_PR,Normalized frequency of 1-gap dipeptide PXR (residues at i and i+2; count / (L−2)).
+XUX_PS,Normalized frequency of 1-gap dipeptide PXS (residues at i and i+2; count / (L−2)).
+XUX_PT,Normalized frequency of 1-gap dipeptide PXT (residues at i and i+2; count / (L−2)).
+XUX_PV,Normalized frequency of 1-gap dipeptide PXV (residues at i and i+2; count / (L−2)).
+XUX_PW,Normalized frequency of 1-gap dipeptide PXW (residues at i and i+2; count / (L−2)).
+XUX_PY,Normalized frequency of 1-gap dipeptide PXY (residues at i and i+2; count / (L−2)).
+XUX_QA,Normalized frequency of 1-gap dipeptide QXA (residues at i and i+2; count / (L−2)).
+XUX_QC,Normalized frequency of 1-gap dipeptide QXC (residues at i and i+2; count / (L−2)).
+XUX_QD,Normalized frequency of 1-gap dipeptide QXD (residues at i and i+2; count / (L−2)).
+XUX_QE,Normalized frequency of 1-gap dipeptide QXE (residues at i and i+2; count / (L−2)).
+XUX_QF,Normalized frequency of 1-gap dipeptide QXF (residues at i and i+2; count / (L−2)).
+XUX_QG,Normalized frequency of 1-gap dipeptide QXG (residues at i and i+2; count / (L−2)).
+XUX_QH,Normalized frequency of 1-gap dipeptide QXH (residues at i and i+2; count / (L−2)).
+XUX_QI,Normalized frequency of 1-gap dipeptide QXI (residues at i and i+2; count / (L−2)).
+XUX_QK,Normalized frequency of 1-gap dipeptide QXK (residues at i and i+2; count / (L−2)).
+XUX_QL,Normalized frequency of 1-gap dipeptide QXL (residues at i and i+2; count / (L−2)).
+XUX_QM,Normalized frequency of 1-gap dipeptide QXM (residues at i and i+2; count / (L−2)).
+XUX_QN,Normalized frequency of 1-gap dipeptide QXN (residues at i and i+2; count / (L−2)).
+XUX_QP,Normalized frequency of 1-gap dipeptide QXP (residues at i and i+2; count / (L−2)).
+XUX_QQ,Normalized frequency of 1-gap dipeptide QXQ (residues at i and i+2; count / (L−2)).
+XUX_QR,Normalized frequency of 1-gap dipeptide QXR (residues at i and i+2; count / (L−2)).
+XUX_QS,Normalized frequency of 1-gap dipeptide QXS (residues at i and i+2; count / (L−2)).
+XUX_QT,Normalized frequency of 1-gap dipeptide QXT (residues at i and i+2; count / (L−2)).
+XUX_QV,Normalized frequency of 1-gap dipeptide QXV (residues at i and i+2; count / (L−2)).
+XUX_QW,Normalized frequency of 1-gap dipeptide QXW (residues at i and i+2; count / (L−2)).
+XUX_QY,Normalized frequency of 1-gap dipeptide QXY (residues at i and i+2; count / (L−2)).
+XUX_RA,Normalized frequency of 1-gap dipeptide RXA (residues at i and i+2; count / (L−2)).
+XUX_RC,Normalized frequency of 1-gap dipeptide RXC (residues at i and i+2; count / (L−2)).
+XUX_RD,Normalized frequency of 1-gap dipeptide RXD (residues at i and i+2; count / (L−2)).
+XUX_RE,Normalized frequency of 1-gap dipeptide RXE (residues at i and i+2; count / (L−2)).
+XUX_RF,Normalized frequency of 1-gap dipeptide RXF (residues at i and i+2; count / (L−2)).
+XUX_RG,Normalized frequency of 1-gap dipeptide RXG (residues at i and i+2; count / (L−2)).
+XUX_RH,Normalized frequency of 1-gap dipeptide RXH (residues at i and i+2; count / (L−2)).
+XUX_RI,Normalized frequency of 1-gap dipeptide RXI (residues at i and i+2; count / (L−2)).
+XUX_RK,Normalized frequency of 1-gap dipeptide RXK (residues at i and i+2; count / (L−2)).
+XUX_RL,Normalized frequency of 1-gap dipeptide RXL (residues at i and i+2; count / (L−2)).
+XUX_RM,Normalized frequency of 1-gap dipeptide RXM (residues at i and i+2; count / (L−2)).
+XUX_RN,Normalized frequency of 1-gap dipeptide RXN (residues at i and i+2; count / (L−2)).
+XUX_RP,Normalized frequency of 1-gap dipeptide RXP (residues at i and i+2; count / (L−2)).
+XUX_RQ,Normalized frequency of 1-gap dipeptide RXQ (residues at i and i+2; count / (L−2)).
+XUX_RR,Normalized frequency of 1-gap dipeptide RXR (residues at i and i+2; count / (L−2)).
+XUX_RS,Normalized frequency of 1-gap dipeptide RXS (residues at i and i+2; count / (L−2)).
+XUX_RT,Normalized frequency of 1-gap dipeptide RXT (residues at i and i+2; count / (L−2)).
+XUX_RV,Normalized frequency of 1-gap dipeptide RXV (residues at i and i+2; count / (L−2)).
+XUX_RW,Normalized frequency of 1-gap dipeptide RXW (residues at i and i+2; count / (L−2)).
+XUX_RY,Normalized frequency of 1-gap dipeptide RXY (residues at i and i+2; count / (L−2)).
+XUX_SA,Normalized frequency of 1-gap dipeptide SXA (residues at i and i+2; count / (L−2)).
+XUX_SC,Normalized frequency of 1-gap dipeptide SXC (residues at i and i+2; count / (L−2)).
+XUX_SD,Normalized frequency of 1-gap dipeptide SXD (residues at i and i+2; count / (L−2)).
+XUX_SE,Normalized frequency of 1-gap dipeptide SXE (residues at i and i+2; count / (L−2)).
+XUX_SF,Normalized frequency of 1-gap dipeptide SXF (residues at i and i+2; count / (L−2)).
+XUX_SG,Normalized frequency of 1-gap dipeptide SXG (residues at i and i+2; count / (L−2)).
+XUX_SH,Normalized frequency of 1-gap dipeptide SXH (residues at i and i+2; count / (L−2)).
+XUX_SI,Normalized frequency of 1-gap dipeptide SXI (residues at i and i+2; count / (L−2)).
+XUX_SK,Normalized frequency of 1-gap dipeptide SXK (residues at i and i+2; count / (L−2)).
+XUX_SL,Normalized frequency of 1-gap dipeptide SXL (residues at i and i+2; count / (L−2)).
+XUX_SM,Normalized frequency of 1-gap dipeptide SXM (residues at i and i+2; count / (L−2)).
+XUX_SN,Normalized frequency of 1-gap dipeptide SXN (residues at i and i+2; count / (L−2)).
+XUX_SP,Normalized frequency of 1-gap dipeptide SXP (residues at i and i+2; count / (L−2)).
+XUX_SQ,Normalized frequency of 1-gap dipeptide SXQ (residues at i and i+2; count / (L−2)).
+XUX_SR,Normalized frequency of 1-gap dipeptide SXR (residues at i and i+2; count / (L−2)).
+XUX_SS,Normalized frequency of 1-gap dipeptide SXS (residues at i and i+2; count / (L−2)).
+XUX_ST,Normalized frequency of 1-gap dipeptide SXT (residues at i and i+2; count / (L−2)).
+XUX_SV,Normalized frequency of 1-gap dipeptide SXV (residues at i and i+2; count / (L−2)).
+XUX_SW,Normalized frequency of 1-gap dipeptide SXW (residues at i and i+2; count / (L−2)).
+XUX_SY,Normalized frequency of 1-gap dipeptide SXY (residues at i and i+2; count / (L−2)).
+XUX_TA,Normalized frequency of 1-gap dipeptide TXA (residues at i and i+2; count / (L−2)).
+XUX_TC,Normalized frequency of 1-gap dipeptide TXC (residues at i and i+2; count / (L−2)).
+XUX_TD,Normalized frequency of 1-gap dipeptide TXD (residues at i and i+2; count / (L−2)).
+XUX_TE,Normalized frequency of 1-gap dipeptide TXE (residues at i and i+2; count / (L−2)).
+XUX_TF,Normalized frequency of 1-gap dipeptide TXF (residues at i and i+2; count / (L−2)).
+XUX_TG,Normalized frequency of 1-gap dipeptide TXG (residues at i and i+2; count / (L−2)).
+XUX_TH,Normalized frequency of 1-gap dipeptide TXH (residues at i and i+2; count / (L−2)).
+XUX_TI,Normalized frequency of 1-gap dipeptide TXI (residues at i and i+2; count / (L−2)).
+XUX_TK,Normalized frequency of 1-gap dipeptide TXK (residues at i and i+2; count / (L−2)).
+XUX_TL,Normalized frequency of 1-gap dipeptide TXL (residues at i and i+2; count / (L−2)).
+XUX_TM,Normalized frequency of 1-gap dipeptide TXM (residues at i and i+2; count / (L−2)).
+XUX_TN,Normalized frequency of 1-gap dipeptide TXN (residues at i and i+2; count / (L−2)).
+XUX_TP,Normalized frequency of 1-gap dipeptide TXP (residues at i and i+2; count / (L−2)).
+XUX_TQ,Normalized frequency of 1-gap dipeptide TXQ (residues at i and i+2; count / (L−2)).
+XUX_TR,Normalized frequency of 1-gap dipeptide TXR (residues at i and i+2; count / (L−2)).
+XUX_TS,Normalized frequency of 1-gap dipeptide TXS (residues at i and i+2; count / (L−2)).
+XUX_TT,Normalized frequency of 1-gap dipeptide TXT (residues at i and i+2; count / (L−2)).
+XUX_TV,Normalized frequency of 1-gap dipeptide TXV (residues at i and i+2; count / (L−2)).
+XUX_TW,Normalized frequency of 1-gap dipeptide TXW (residues at i and i+2; count / (L−2)).
+XUX_TY,Normalized frequency of 1-gap dipeptide TXY (residues at i and i+2; count / (L−2)).
+XUX_VA,Normalized frequency of 1-gap dipeptide VXA (residues at i and i+2; count / (L−2)).
+XUX_VC,Normalized frequency of 1-gap dipeptide VXC (residues at i and i+2; count / (L−2)).
+XUX_VD,Normalized frequency of 1-gap dipeptide VXD (residues at i and i+2; count / (L−2)).
+XUX_VE,Normalized frequency of 1-gap dipeptide VXE (residues at i and i+2; count / (L−2)).
+XUX_VF,Normalized frequency of 1-gap dipeptide VXF (residues at i and i+2; count / (L−2)).
+XUX_VG,Normalized frequency of 1-gap dipeptide VXG (residues at i and i+2; count / (L−2)).
+XUX_VH,Normalized frequency of 1-gap dipeptide VXH (residues at i and i+2; count / (L−2)).
+XUX_VI,Normalized frequency of 1-gap dipeptide VXI (residues at i and i+2; count / (L−2)).
+XUX_VK,Normalized frequency of 1-gap dipeptide VXK (residues at i and i+2; count / (L−2)).
+XUX_VL,Normalized frequency of 1-gap dipeptide VXL (residues at i and i+2; count / (L−2)).
+XUX_VM,Normalized frequency of 1-gap dipeptide VXM (residues at i and i+2; count / (L−2)).
+XUX_VN,Normalized frequency of 1-gap dipeptide VXN (residues at i and i+2; count / (L−2)).
+XUX_VP,Normalized frequency of 1-gap dipeptide VXP (residues at i and i+2; count / (L−2)).
+XUX_VQ,Normalized frequency of 1-gap dipeptide VXQ (residues at i and i+2; count / (L−2)).
+XUX_VR,Normalized frequency of 1-gap dipeptide VXR (residues at i and i+2; count / (L−2)).
+XUX_VS,Normalized frequency of 1-gap dipeptide VXS (residues at i and i+2; count / (L−2)).
+XUX_VT,Normalized frequency of 1-gap dipeptide VXT (residues at i and i+2; count / (L−2)).
+XUX_VV,Normalized frequency of 1-gap dipeptide VXV (residues at i and i+2; count / (L−2)).
+XUX_VW,Normalized frequency of 1-gap dipeptide VXW (residues at i and i+2; count / (L−2)).
+XUX_VY,Normalized frequency of 1-gap dipeptide VXY (residues at i and i+2; count / (L−2)).
+XUX_WA,Normalized frequency of 1-gap dipeptide WXA (residues at i and i+2; count / (L−2)).
+XUX_WC,Normalized frequency of 1-gap dipeptide WXC (residues at i and i+2; count / (L−2)).
+XUX_WD,Normalized frequency of 1-gap dipeptide WXD (residues at i and i+2; count / (L−2)).
+XUX_WE,Normalized frequency of 1-gap dipeptide WXE (residues at i and i+2; count / (L−2)).
+XUX_WF,Normalized frequency of 1-gap dipeptide WXF (residues at i and i+2; count / (L−2)).
+XUX_WG,Normalized frequency of 1-gap dipeptide WXG (residues at i and i+2; count / (L−2)).
+XUX_WH,Normalized frequency of 1-gap dipeptide WXH (residues at i and i+2; count / (L−2)).
+XUX_WI,Normalized frequency of 1-gap dipeptide WXI (residues at i and i+2; count / (L−2)).
+XUX_WK,Normalized frequency of 1-gap dipeptide WXK (residues at i and i+2; count / (L−2)).
+XUX_WL,Normalized frequency of 1-gap dipeptide WXL (residues at i and i+2; count / (L−2)).
+XUX_WM,Normalized frequency of 1-gap dipeptide WXM (residues at i and i+2; count / (L−2)).
+XUX_WN,Normalized frequency of 1-gap dipeptide WXN (residues at i and i+2; count / (L−2)).
+XUX_WP,Normalized frequency of 1-gap dipeptide WXP (residues at i and i+2; count / (L−2)).
+XUX_WQ,Normalized frequency of 1-gap dipeptide WXQ (residues at i and i+2; count / (L−2)).
+XUX_WR,Normalized frequency of 1-gap dipeptide WXR (residues at i and i+2; count / (L−2)).
+XUX_WS,Normalized frequency of 1-gap dipeptide WXS (residues at i and i+2; count / (L−2)).
+XUX_WT,Normalized frequency of 1-gap dipeptide WXT (residues at i and i+2; count / (L−2)).
+XUX_WV,Normalized frequency of 1-gap dipeptide WXV (residues at i and i+2; count / (L−2)).
+XUX_WW,Normalized frequency of 1-gap dipeptide WXW (residues at i and i+2; count / (L−2)).
+XUX_WY,Normalized frequency of 1-gap dipeptide WXY (residues at i and i+2; count / (L−2)).
+XUX_YA,Normalized frequency of 1-gap dipeptide YXA (residues at i and i+2; count / (L−2)).
+XUX_YC,Normalized frequency of 1-gap dipeptide YXC (residues at i and i+2; count / (L−2)).
+XUX_YD,Normalized frequency of 1-gap dipeptide YXD (residues at i and i+2; count / (L−2)).
+XUX_YE,Normalized frequency of 1-gap dipeptide YXE (residues at i and i+2; count / (L−2)).
+XUX_YF,Normalized frequency of 1-gap dipeptide YXF (residues at i and i+2; count / (L−2)).
+XUX_YG,Normalized frequency of 1-gap dipeptide YXG (residues at i and i+2; count / (L−2)).
+XUX_YH,Normalized frequency of 1-gap dipeptide YXH (residues at i and i+2; count / (L−2)).
+XUX_YI,Normalized frequency of 1-gap dipeptide YXI (residues at i and i+2; count / (L−2)).
+XUX_YK,Normalized frequency of 1-gap dipeptide YXK (residues at i and i+2; count / (L−2)).
+XUX_YL,Normalized frequency of 1-gap dipeptide YXL (residues at i and i+2; count / (L−2)).
+XUX_YM,Normalized frequency of 1-gap dipeptide YXM (residues at i and i+2; count / (L−2)).
+XUX_YN,Normalized frequency of 1-gap dipeptide YXN (residues at i and i+2; count / (L−2)).
+XUX_YP,Normalized frequency of 1-gap dipeptide YXP (residues at i and i+2; count / (L−2)).
+XUX_YQ,Normalized frequency of 1-gap dipeptide YXQ (residues at i and i+2; count / (L−2)).
+XUX_YR,Normalized frequency of 1-gap dipeptide YXR (residues at i and i+2; count / (L−2)).
+XUX_YS,Normalized frequency of 1-gap dipeptide YXS (residues at i and i+2; count / (L−2)).
+XUX_YT,Normalized frequency of 1-gap dipeptide YXT (residues at i and i+2; count / (L−2)).
+XUX_YV,Normalized frequency of 1-gap dipeptide YXV (residues at i and i+2; count / (L−2)).
+XUX_YW,Normalized frequency of 1-gap dipeptide YXW (residues at i and i+2; count / (L−2)).
+XUX_YY,Normalized frequency of 1-gap dipeptide YXY (residues at i and i+2; count / (L−2)).
+XXcls_POS-POS,"Normalized frequency of adjacent residue-class pairs POS–POS (positively charged [K,R] followed by positively charged [K,R]); residues may belong to multiple classes."
+XXcls_POS-NEG,"Normalized frequency of adjacent residue-class pairs POS–NEG (positively charged [K,R] followed by negatively charged [D,E]); residues may belong to multiple classes."
+XXcls_POS-POL,"Normalized frequency of adjacent residue-class pairs POS–POL (positively charged [K,R] followed by polar [S,T,N,Q,Y]); residues may belong to multiple classes."
+XXcls_POS-NONPOL,"Normalized frequency of adjacent residue-class pairs POS–NONPOL (positively charged [K,R] followed by nonpolar [A,V,I,L,M,F,W]); residues may belong to multiple classes."
+XXcls_POS-HYDRO,"Normalized frequency of adjacent residue-class pairs POS–HYDRO (positively charged [K,R] followed by hydrophobic [A,V,I,L,M,F,Y,W]); residues may belong to multiple classes."
+XXcls_POS-ALIPH,"Normalized frequency of adjacent residue-class pairs POS–ALIPH (positively charged [K,R] followed by aliphatic [A,V,I,L]); residues may belong to multiple classes."
+XXcls_POS-AROM,"Normalized frequency of adjacent residue-class pairs POS–AROM (positively charged [K,R] followed by aromatic [F,W,Y]); residues may belong to multiple classes."
+XXcls_NEG-POS,"Normalized frequency of adjacent residue-class pairs NEG–POS (negatively charged [D,E] followed by positively charged [K,R]); residues may belong to multiple classes."
+XXcls_NEG-NEG,"Normalized frequency of adjacent residue-class pairs NEG–NEG (negatively charged [D,E] followed by negatively charged [D,E]); residues may belong to multiple classes."
+XXcls_NEG-POL,"Normalized frequency of adjacent residue-class pairs NEG–POL (negatively charged [D,E] followed by polar [S,T,N,Q,Y]); residues may belong to multiple classes."
+XXcls_NEG-NONPOL,"Normalized frequency of adjacent residue-class pairs NEG–NONPOL (negatively charged [D,E] followed by nonpolar [A,V,I,L,M,F,W]); residues may belong to multiple classes."
+XXcls_NEG-HYDRO,"Normalized frequency of adjacent residue-class pairs NEG–HYDRO (negatively charged [D,E] followed by hydrophobic [A,V,I,L,M,F,Y,W]); residues may belong to multiple classes."
+XXcls_NEG-ALIPH,"Normalized frequency of adjacent residue-class pairs NEG–ALIPH (negatively charged [D,E] followed by aliphatic [A,V,I,L]); residues may belong to multiple classes."
+XXcls_NEG-AROM,"Normalized frequency of adjacent residue-class pairs NEG–AROM (negatively charged [D,E] followed by aromatic [F,W,Y]); residues may belong to multiple classes."
+XXcls_POL-POS,"Normalized frequency of adjacent residue-class pairs POL–POS (polar [S,T,N,Q,Y] followed by positively charged [K,R]); residues may belong to multiple classes."
+XXcls_POL-NEG,"Normalized frequency of adjacent residue-class pairs POL–NEG (polar [S,T,N,Q,Y] followed by negatively charged [D,E]); residues may belong to multiple classes."
+XXcls_POL-POL,"Normalized frequency of adjacent residue-class pairs POL–POL (polar [S,T,N,Q,Y] followed by polar [S,T,N,Q,Y]); residues may belong to multiple classes."
+XXcls_POL-NONPOL,"Normalized frequency of adjacent residue-class pairs POL–NONPOL (polar [S,T,N,Q,Y] followed by nonpolar [A,V,I,L,M,F,W]); residues may belong to multiple classes."
+XXcls_POL-HYDRO,"Normalized frequency of adjacent residue-class pairs POL–HYDRO (polar [S,T,N,Q,Y] followed by hydrophobic [A,V,I,L,M,F,Y,W]); residues may belong to multiple classes."
+XXcls_POL-ALIPH,"Normalized frequency of adjacent residue-class pairs POL–ALIPH (polar [S,T,N,Q,Y] followed by aliphatic [A,V,I,L]); residues may belong to multiple classes."
+XXcls_POL-AROM,"Normalized frequency of adjacent residue-class pairs POL–AROM (polar [S,T,N,Q,Y] followed by aromatic [F,W,Y]); residues may belong to multiple classes."
+XXcls_NONPOL-POS,"Normalized frequency of adjacent residue-class pairs NONPOL–POS (nonpolar [A,V,I,L,M,F,W] followed by positively charged [K,R]); residues may belong to multiple classes."
+XXcls_NONPOL-NEG,"Normalized frequency of adjacent residue-class pairs NONPOL–NEG (nonpolar [A,V,I,L,M,F,W] followed by negatively charged [D,E]); residues may belong to multiple classes."
+XXcls_NONPOL-POL,"Normalized frequency of adjacent residue-class pairs NONPOL–POL (nonpolar [A,V,I,L,M,F,W] followed by polar [S,T,N,Q,Y]); residues may belong to multiple classes."
+XXcls_NONPOL-NONPOL,"Normalized frequency of adjacent residue-class pairs NONPOL–NONPOL (nonpolar [A,V,I,L,M,F,W] followed by nonpolar [A,V,I,L,M,F,W]); residues may belong to multiple classes."
+XXcls_NONPOL-HYDRO,"Normalized frequency of adjacent residue-class pairs NONPOL–HYDRO (nonpolar [A,V,I,L,M,F,W] followed by hydrophobic [A,V,I,L,M,F,Y,W]); residues may belong to multiple classes."
+XXcls_NONPOL-ALIPH,"Normalized frequency of adjacent residue-class pairs NONPOL–ALIPH (nonpolar [A,V,I,L,M,F,W] followed by aliphatic [A,V,I,L]); residues may belong to multiple classes."
+XXcls_NONPOL-AROM,"Normalized frequency of adjacent residue-class pairs NONPOL–AROM (nonpolar [A,V,I,L,M,F,W] followed by aromatic [F,W,Y]); residues may belong to multiple classes."
+XXcls_HYDRO-POS,"Normalized frequency of adjacent residue-class pairs HYDRO–POS (hydrophobic [A,V,I,L,M,F,Y,W] followed by positively charged [K,R]); residues may belong to multiple classes."
+XXcls_HYDRO-NEG,"Normalized frequency of adjacent residue-class pairs HYDRO–NEG (hydrophobic [A,V,I,L,M,F,Y,W] followed by negatively charged [D,E]); residues may belong to multiple classes."
+XXcls_HYDRO-POL,"Normalized frequency of adjacent residue-class pairs HYDRO–POL (hydrophobic [A,V,I,L,M,F,Y,W] followed by polar [S,T,N,Q,Y]); residues may belong to multiple classes."
+XXcls_HYDRO-NONPOL,"Normalized frequency of adjacent residue-class pairs HYDRO–NONPOL (hydrophobic [A,V,I,L,M,F,Y,W] followed by nonpolar [A,V,I,L,M,F,W]); residues may belong to multiple classes."
+XXcls_HYDRO-HYDRO,"Normalized frequency of adjacent residue-class pairs HYDRO–HYDRO (hydrophobic [A,V,I,L,M,F,Y,W] followed by hydrophobic [A,V,I,L,M,F,Y,W]); residues may belong to multiple classes."
+XXcls_HYDRO-ALIPH,"Normalized frequency of adjacent residue-class pairs HYDRO–ALIPH (hydrophobic [A,V,I,L,M,F,Y,W] followed by aliphatic [A,V,I,L]); residues may belong to multiple classes."
+XXcls_HYDRO-AROM,"Normalized frequency of adjacent residue-class pairs HYDRO–AROM (hydrophobic [A,V,I,L,M,F,Y,W] followed by aromatic [F,W,Y]); residues may belong to multiple classes."
+XXcls_ALIPH-POS,"Normalized frequency of adjacent residue-class pairs ALIPH–POS (aliphatic [A,V,I,L] followed by positively charged [K,R]); residues may belong to multiple classes."
+XXcls_ALIPH-NEG,"Normalized frequency of adjacent residue-class pairs ALIPH–NEG (aliphatic [A,V,I,L] followed by negatively charged [D,E]); residues may belong to multiple classes."
+XXcls_ALIPH-POL,"Normalized frequency of adjacent residue-class pairs ALIPH–POL (aliphatic [A,V,I,L] followed by polar [S,T,N,Q,Y]); residues may belong to multiple classes."
+XXcls_ALIPH-NONPOL,"Normalized frequency of adjacent residue-class pairs ALIPH–NONPOL (aliphatic [A,V,I,L] followed by nonpolar [A,V,I,L,M,F,W]); residues may belong to multiple classes."
+XXcls_ALIPH-HYDRO,"Normalized frequency of adjacent residue-class pairs ALIPH–HYDRO (aliphatic [A,V,I,L] followed by hydrophobic [A,V,I,L,M,F,Y,W]); residues may belong to multiple classes."
+XXcls_ALIPH-ALIPH,"Normalized frequency of adjacent residue-class pairs ALIPH–ALIPH (aliphatic [A,V,I,L] followed by aliphatic [A,V,I,L]); residues may belong to multiple classes."
+XXcls_ALIPH-AROM,"Normalized frequency of adjacent residue-class pairs ALIPH–AROM (aliphatic [A,V,I,L] followed by aromatic [F,W,Y]); residues may belong to multiple classes."
+XXcls_AROM-POS,"Normalized frequency of adjacent residue-class pairs AROM–POS (aromatic [F,W,Y] followed by positively charged [K,R]); residues may belong to multiple classes."
+XXcls_AROM-NEG,"Normalized frequency of adjacent residue-class pairs AROM–NEG (aromatic [F,W,Y] followed by negatively charged [D,E]); residues may belong to multiple classes."
+XXcls_AROM-POL,"Normalized frequency of adjacent residue-class pairs AROM–POL (aromatic [F,W,Y] followed by polar [S,T,N,Q,Y]); residues may belong to multiple classes."
+XXcls_AROM-NONPOL,"Normalized frequency of adjacent residue-class pairs AROM–NONPOL (aromatic [F,W,Y] followed by nonpolar [A,V,I,L,M,F,W]); residues may belong to multiple classes."
+XXcls_AROM-HYDRO,"Normalized frequency of adjacent residue-class pairs AROM–HYDRO (aromatic [F,W,Y] followed by hydrophobic [A,V,I,L,M,F,Y,W]); residues may belong to multiple classes."
+XXcls_AROM-ALIPH,"Normalized frequency of adjacent residue-class pairs AROM–ALIPH (aromatic [F,W,Y] followed by aliphatic [A,V,I,L]); residues may belong to multiple classes."
+XXcls_AROM-AROM,"Normalized frequency of adjacent residue-class pairs AROM–AROM (aromatic [F,W,Y] followed by aromatic [F,W,Y]); residues may belong to multiple classes."
+XUXcls_POS-POS,"Normalized frequency of 1-gap residue-class pairs POS–POS (positively charged [K,R] at i and positively charged [K,R] at i+2); residues may belong to multiple classes."
+XUXcls_POS-NEG,"Normalized frequency of 1-gap residue-class pairs POS–NEG (positively charged [K,R] at i and negatively charged [D,E] at i+2); residues may belong to multiple classes."
+XUXcls_POS-POL,"Normalized frequency of 1-gap residue-class pairs POS–POL (positively charged [K,R] at i and polar [S,T,N,Q,Y] at i+2); residues may belong to multiple classes."
+XUXcls_POS-NONPOL,"Normalized frequency of 1-gap residue-class pairs POS–NONPOL (positively charged [K,R] at i and nonpolar [A,V,I,L,M,F,W] at i+2); residues may belong to multiple classes."
+XUXcls_POS-HYDRO,"Normalized frequency of 1-gap residue-class pairs POS–HYDRO (positively charged [K,R] at i and hydrophobic [A,V,I,L,M,F,Y,W] at i+2); residues may belong to multiple classes."
+XUXcls_POS-ALIPH,"Normalized frequency of 1-gap residue-class pairs POS–ALIPH (positively charged [K,R] at i and aliphatic [A,V,I,L] at i+2); residues may belong to multiple classes."
+XUXcls_POS-AROM,"Normalized frequency of 1-gap residue-class pairs POS–AROM (positively charged [K,R] at i and aromatic [F,W,Y] at i+2); residues may belong to multiple classes."
+XUXcls_NEG-POS,"Normalized frequency of 1-gap residue-class pairs NEG–POS (negatively charged [D,E] at i and positively charged [K,R] at i+2); residues may belong to multiple classes."
+XUXcls_NEG-NEG,"Normalized frequency of 1-gap residue-class pairs NEG–NEG (negatively charged [D,E] at i and negatively charged [D,E] at i+2); residues may belong to multiple classes."
+XUXcls_NEG-POL,"Normalized frequency of 1-gap residue-class pairs NEG–POL (negatively charged [D,E] at i and polar [S,T,N,Q,Y] at i+2); residues may belong to multiple classes."
+XUXcls_NEG-NONPOL,"Normalized frequency of 1-gap residue-class pairs NEG–NONPOL (negatively charged [D,E] at i and nonpolar [A,V,I,L,M,F,W] at i+2); residues may belong to multiple classes."
+XUXcls_NEG-HYDRO,"Normalized frequency of 1-gap residue-class pairs NEG–HYDRO (negatively charged [D,E] at i and hydrophobic [A,V,I,L,M,F,Y,W] at i+2); residues may belong to multiple classes."
+XUXcls_NEG-ALIPH,"Normalized frequency of 1-gap residue-class pairs NEG–ALIPH (negatively charged [D,E] at i and aliphatic [A,V,I,L] at i+2); residues may belong to multiple classes."
+XUXcls_NEG-AROM,"Normalized frequency of 1-gap residue-class pairs NEG–AROM (negatively charged [D,E] at i and aromatic [F,W,Y] at i+2); residues may belong to multiple classes."
+XUXcls_POL-POS,"Normalized frequency of 1-gap residue-class pairs POL–POS (polar [S,T,N,Q,Y] at i and positively charged [K,R] at i+2); residues may belong to multiple classes."
+XUXcls_POL-NEG,"Normalized frequency of 1-gap residue-class pairs POL–NEG (polar [S,T,N,Q,Y] at i and negatively charged [D,E] at i+2); residues may belong to multiple classes."
+XUXcls_POL-POL,"Normalized frequency of 1-gap residue-class pairs POL–POL (polar [S,T,N,Q,Y] at i and polar [S,T,N,Q,Y] at i+2); residues may belong to multiple classes."
+XUXcls_POL-NONPOL,"Normalized frequency of 1-gap residue-class pairs POL–NONPOL (polar [S,T,N,Q,Y] at i and nonpolar [A,V,I,L,M,F,W] at i+2); residues may belong to multiple classes."
+XUXcls_POL-HYDRO,"Normalized frequency of 1-gap residue-class pairs POL–HYDRO (polar [S,T,N,Q,Y] at i and hydrophobic [A,V,I,L,M,F,Y,W] at i+2); residues may belong to multiple classes."
+XUXcls_POL-ALIPH,"Normalized frequency of 1-gap residue-class pairs POL–ALIPH (polar [S,T,N,Q,Y] at i and aliphatic [A,V,I,L] at i+2); residues may belong to multiple classes."
+XUXcls_POL-AROM,"Normalized frequency of 1-gap residue-class pairs POL–AROM (polar [S,T,N,Q,Y] at i and aromatic [F,W,Y] at i+2); residues may belong to multiple classes."
+XUXcls_NONPOL-POS,"Normalized frequency of 1-gap residue-class pairs NONPOL–POS (nonpolar [A,V,I,L,M,F,W] at i and positively charged [K,R] at i+2); residues may belong to multiple classes."
+XUXcls_NONPOL-NEG,"Normalized frequency of 1-gap residue-class pairs NONPOL–NEG (nonpolar [A,V,I,L,M,F,W] at i and negatively charged [D,E] at i+2); residues may belong to multiple classes."
+XUXcls_NONPOL-POL,"Normalized frequency of 1-gap residue-class pairs NONPOL–POL (nonpolar [A,V,I,L,M,F,W] at i and polar [S,T,N,Q,Y] at i+2); residues may belong to multiple classes."
+XUXcls_NONPOL-NONPOL,"Normalized frequency of 1-gap residue-class pairs NONPOL–NONPOL (nonpolar [A,V,I,L,M,F,W] at i and nonpolar [A,V,I,L,M,F,W] at i+2); residues may belong to multiple classes."
+XUXcls_NONPOL-HYDRO,"Normalized frequency of 1-gap residue-class pairs NONPOL–HYDRO (nonpolar [A,V,I,L,M,F,W] at i and hydrophobic [A,V,I,L,M,F,Y,W] at i+2); residues may belong to multiple classes."
+XUXcls_NONPOL-ALIPH,"Normalized frequency of 1-gap residue-class pairs NONPOL–ALIPH (nonpolar [A,V,I,L,M,F,W] at i and aliphatic [A,V,I,L] at i+2); residues may belong to multiple classes."
+XUXcls_NONPOL-AROM,"Normalized frequency of 1-gap residue-class pairs NONPOL–AROM (nonpolar [A,V,I,L,M,F,W] at i and aromatic [F,W,Y] at i+2); residues may belong to multiple classes."
+XUXcls_HYDRO-POS,"Normalized frequency of 1-gap residue-class pairs HYDRO–POS (hydrophobic [A,V,I,L,M,F,Y,W] at i and positively charged [K,R] at i+2); residues may belong to multiple classes."
+XUXcls_HYDRO-NEG,"Normalized frequency of 1-gap residue-class pairs HYDRO–NEG (hydrophobic [A,V,I,L,M,F,Y,W] at i and negatively charged [D,E] at i+2); residues may belong to multiple classes."
+XUXcls_HYDRO-POL,"Normalized frequency of 1-gap residue-class pairs HYDRO–POL (hydrophobic [A,V,I,L,M,F,Y,W] at i and polar [S,T,N,Q,Y] at i+2); residues may belong to multiple classes."
+XUXcls_HYDRO-NONPOL,"Normalized frequency of 1-gap residue-class pairs HYDRO–NONPOL (hydrophobic [A,V,I,L,M,F,Y,W] at i and nonpolar [A,V,I,L,M,F,W] at i+2); residues may belong to multiple classes."
+XUXcls_HYDRO-HYDRO,"Normalized frequency of 1-gap residue-class pairs HYDRO–HYDRO (hydrophobic [A,V,I,L,M,F,Y,W] at i and hydrophobic [A,V,I,L,M,F,Y,W] at i+2); residues may belong to multiple classes."
+XUXcls_HYDRO-ALIPH,"Normalized frequency of 1-gap residue-class pairs HYDRO–ALIPH (hydrophobic [A,V,I,L,M,F,Y,W] at i and aliphatic [A,V,I,L] at i+2); residues may belong to multiple classes."
+XUXcls_HYDRO-AROM,"Normalized frequency of 1-gap residue-class pairs HYDRO–AROM (hydrophobic [A,V,I,L,M,F,Y,W] at i and aromatic [F,W,Y] at i+2); residues may belong to multiple classes."
+XUXcls_ALIPH-POS,"Normalized frequency of 1-gap residue-class pairs ALIPH–POS (aliphatic [A,V,I,L] at i and positively charged [K,R] at i+2); residues may belong to multiple classes."
+XUXcls_ALIPH-NEG,"Normalized frequency of 1-gap residue-class pairs ALIPH–NEG (aliphatic [A,V,I,L] at i and negatively charged [D,E] at i+2); residues may belong to multiple classes."
+XUXcls_ALIPH-POL,"Normalized frequency of 1-gap residue-class pairs ALIPH–POL (aliphatic [A,V,I,L] at i and polar [S,T,N,Q,Y] at i+2); residues may belong to multiple classes."
+XUXcls_ALIPH-NONPOL,"Normalized frequency of 1-gap residue-class pairs ALIPH–NONPOL (aliphatic [A,V,I,L] at i and nonpolar [A,V,I,L,M,F,W] at i+2); residues may belong to multiple classes."
+XUXcls_ALIPH-HYDRO,"Normalized frequency of 1-gap residue-class pairs ALIPH–HYDRO (aliphatic [A,V,I,L] at i and hydrophobic [A,V,I,L,M,F,Y,W] at i+2); residues may belong to multiple classes."
+XUXcls_ALIPH-ALIPH,"Normalized frequency of 1-gap residue-class pairs ALIPH–ALIPH (aliphatic [A,V,I,L] at i and aliphatic [A,V,I,L] at i+2); residues may belong to multiple classes."
+XUXcls_ALIPH-AROM,"Normalized frequency of 1-gap residue-class pairs ALIPH–AROM (aliphatic [A,V,I,L] at i and aromatic [F,W,Y] at i+2); residues may belong to multiple classes."
+XUXcls_AROM-POS,"Normalized frequency of 1-gap residue-class pairs AROM–POS (aromatic [F,W,Y] at i and positively charged [K,R] at i+2); residues may belong to multiple classes."
+XUXcls_AROM-NEG,"Normalized frequency of 1-gap residue-class pairs AROM–NEG (aromatic [F,W,Y] at i and negatively charged [D,E] at i+2); residues may belong to multiple classes."
+XUXcls_AROM-POL,"Normalized frequency of 1-gap residue-class pairs AROM–POL (aromatic [F,W,Y] at i and polar [S,T,N,Q,Y] at i+2); residues may belong to multiple classes."
+XUXcls_AROM-NONPOL,"Normalized frequency of 1-gap residue-class pairs AROM–NONPOL (aromatic [F,W,Y] at i and nonpolar [A,V,I,L,M,F,W] at i+2); residues may belong to multiple classes."
+XUXcls_AROM-HYDRO,"Normalized frequency of 1-gap residue-class pairs AROM–HYDRO (aromatic [F,W,Y] at i and hydrophobic [A,V,I,L,M,F,Y,W] at i+2); residues may belong to multiple classes."
+XUXcls_AROM-ALIPH,"Normalized frequency of 1-gap residue-class pairs AROM–ALIPH (aromatic [F,W,Y] at i and aliphatic [A,V,I,L] at i+2); residues may belong to multiple classes."
+XUXcls_AROM-AROM,"Normalized frequency of 1-gap residue-class pairs AROM–AROM (aromatic [F,W,Y] at i and aromatic [F,W,Y] at i+2); residues may belong to multiple classes."
+max_run1gap_A,Length of the longest stretch that is entirely A except for at most one non-A residue.
+max_run1gap_C,Length of the longest stretch that is entirely C except for at most one non-C residue.
+max_run1gap_D,Length of the longest stretch that is entirely D except for at most one non-D residue.
+max_run1gap_E,Length of the longest stretch that is entirely E except for at most one non-E residue.
+max_run1gap_F,Length of the longest stretch that is entirely F except for at most one non-F residue.
+max_run1gap_G,Length of the longest stretch that is entirely G except for at most one non-G residue.
+max_run1gap_H,Length of the longest stretch that is entirely H except for at most one non-H residue.
+max_run1gap_I,Length of the longest stretch that is entirely I except for at most one non-I residue.
+max_run1gap_K,Length of the longest stretch that is entirely K except for at most one non-K residue.
+max_run1gap_L,Length of the longest stretch that is entirely L except for at most one non-L residue.
+max_run1gap_M,Length of the longest stretch that is entirely M except for at most one non-M residue.
+max_run1gap_N,Length of the longest stretch that is entirely N except for at most one non-N residue.
+max_run1gap_P,Length of the longest stretch that is entirely P except for at most one non-P residue.
+max_run1gap_Q,Length of the longest stretch that is entirely Q except for at most one non-Q residue.
+max_run1gap_R,Length of the longest stretch that is entirely R except for at most one non-R residue.
+max_run1gap_S,Length of the longest stretch that is entirely S except for at most one non-S residue.
+max_run1gap_T,Length of the longest stretch that is entirely T except for at most one non-T residue.
+max_run1gap_V,Length of the longest stretch that is entirely V except for at most one non-V residue.
+max_run1gap_W,Length of the longest stretch that is entirely W except for at most one non-W residue.
+max_run1gap_Y,Length of the longest stretch that is entirely Y except for at most one non-Y residue.
