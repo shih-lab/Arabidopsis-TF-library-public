@@ -1,6 +1,6 @@
-# TF library analysis scripts
+# Arabidopsis-TF-library-public
 
-Public collection of Python pipelines and Jupyter notebooks for sequence-model and Random Forest / SHAP analyses on the Shih lab TF library work (Anya's pipeline scripts and Jacob's XGBoost notebooks).
+Public collection of Python pipelines and Jupyter notebooks for sequence-model and Random Forest / SHAP analyses on the Shih lab Arabidopsis TF library work (Anya's pipeline scripts and Jacob's XGBoost notebooks).
 
 ## Layout
 
