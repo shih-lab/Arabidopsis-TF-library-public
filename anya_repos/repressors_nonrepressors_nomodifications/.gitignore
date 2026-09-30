@@ -1,0 +1,4 @@
+*.csv
+!shap_figures/sequence_model_scores.csv
+shap_figures/performance_metrics_bar.svg
+shap_figures/sequence_model_scores.csv
