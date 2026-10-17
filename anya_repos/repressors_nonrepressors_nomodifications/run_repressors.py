@@ -20,16 +20,15 @@ OUTPUT_DIR = "/Users/anyalachwani/Downloads/repressor_batches_nonmutated"
 
 LABEL_COL = "label"
 
-N_BATCHES = len(nonrepressors)/len(repressors)
 
-N_REPRESSORS = 2000
-N_NONREPRESSORS = 6000
+N_REPRESSORS = 1745
+N_NONREPRESSORS = 18684
 
 RANDOM_STATE = 42
 
-FEATURE_START_IDX = 21
+FEATURE_START_IDX = 17
 
-TEST_SIZE = 0.20
+TEST_SIZE = 0.30
 
 TOP_N_SHAP = 100
 
@@ -39,6 +38,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 df = pd.read_csv(INPUT_FILE)
+df = df.dropna(axis=1)
 
 
 print("ORIGINAL DATASET")
@@ -54,6 +54,8 @@ print(df[LABEL_COL].value_counts())
 repressors = df[df[LABEL_COL] == 1].copy()
 
 nonrepressors = df[df[LABEL_COL] == 0].copy()
+N_BATCHES = len(nonrepressors)//len(repressors)
+
 
 print("\nRepressors available:", len(repressors))
 print("Non-repressors available:", len(nonrepressors))
@@ -106,10 +108,8 @@ all_shap_results = []
 
 for batch_number in range(1, N_BATCHES + 1):
 
-    print("\n")
-    print("=" * 60)
     print(f"BATCH {batch_number:02d}")
-    print("=" * 60)
+
 
     seed = RANDOM_STATE + batch_number
 
@@ -175,7 +175,7 @@ for batch_number in range(1, N_BATCHES + 1):
 
 
     feature_cols = list(
-        batch_df.columns[FEATURE_START_IDX:]
+        batch_df.columns[FEATURE_START_IDX:-1]
     )
 
     if LABEL_COL in feature_cols:
@@ -185,13 +185,10 @@ for batch_number in range(1, N_BATCHES + 1):
     X = batch_df[feature_cols].copy()
 
     y = batch_df[LABEL_COL].copy()
+    X = X.dropna(axis=1)
+    feature_cols = X.columns.tolist()
 
 
-    X = X.fillna(
-        X.median()
-    )
-
-    X = X.fillna(0)
 
 
     X_train, X_test, y_train, y_test = (
@@ -285,31 +282,17 @@ for batch_number in range(1, N_BATCHES + 1):
     )
 
 
-    shap_values = explainer.shap_values(
-        X_test
-    )
-
+    shap_values = explainer.shap_values(X_test)
     print("SHAP type:", type(shap_values))
-    
-    if isinstance(shap_values, np.ndarray):
-        print("SHAP shape:", shap_values.shape)
-
-
-
     if isinstance(shap_values, list):
-
         shap_class1 = shap_values[1]
-
-    elif (
-        isinstance(shap_values, np.ndarray)
-        and shap_values.ndim == 3
-    ):
-
-        shap_class1 = shap_values[:, :, 1]
-
+        print("SHAP shape:", shap_class1.shape)
+        print("SHAP min/max:", shap_class1.min(), shap_class1.max())
     else:
+        print("SHAP shape:", shap_values.shape)
+        shap_class1 = shap_values[:, :, 1]
+        print("SHAP min/max:", shap_class1.min(), shap_class1.max())
 
-        shap_class1 = shap_values
 
 
 
@@ -464,135 +447,3 @@ all_shap_df.to_csv(
 
 
 
-top_shap = all_shap_df[
-    all_shap_df["Rank"] <= TOP_N_SHAP
-].copy()
-
-
-shap_stability = (
-    top_shap
-    .groupby("Feature")
-    .agg(
-        Top100_Batches=(
-            "Batch",
-            "nunique"
-        ),
-
-        Mean_SHAP=(
-            "Mean_ABS_SHAP",
-            "mean"
-        ),
-
-        Median_SHAP=(
-            "Mean_ABS_SHAP",
-            "median"
-        ),
-
-        Mean_Rank=(
-            "Rank",
-            "mean"
-        ),
-
-        Median_Rank=(
-            "Rank",
-            "median"
-        )
-    )
-    .reset_index()
-)
-
-
-
-
-stability_file = os.path.join(
-    OUTPUT_DIR,
-    "SHAP_feature_stability_nonmutated.csv"
-)
-
-
-shap_stability.to_csv(
-    stability_file,
-    index=False
-)
-
-
-
-
-
-print("FINISHED")
-
-
-print(
-    f"\nCreated {N_BATCHES} batches."
-)
-
-
-print("\nFiles saved in:")
-
-print(
-    OUTPUT_DIR
-)
-
-
-print("\nEach batch contains approximately:")
-
-
-print(
-    f"{n_repressors_to_use} "
-    "repressors (label 1)"
-)
-
-
-print(
-    f"{n_nonrepressors_to_use} "
-    "non-repressors (label 0)"
-)
-
-
-print(
-    "\nNon-repressor sampling frequency:"
-)
-
-
-print(
-    nonrepressor_usage
-    .value_counts()
-    .sort_index()
-)
-
-
-print(
-    "\nAverage number of batches each "
-    "non-repressor was used in:",
-    round(
-        nonrepressor_usage.mean(),
-        2
-    )
-)
-
-
-
-
-print("MOST STABLE SHAP FEATURES")
-
-
-
-print(
-    shap_stability[
-        [
-            "Feature",
-            "Top100_Batches",
-            "Mean_Rank",
-            "Mean_SHAP"
-        ]
-    ]
-    .head(50)
-    .to_string(index=False)
-)
-
-
-print("\nSHAP stability saved to:")
-
-print(
-    stability_file
-)

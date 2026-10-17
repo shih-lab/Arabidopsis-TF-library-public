@@ -1,313 +1,109 @@
-import argparse
-import sys
+#annotatedfeaturesrunPlantSpecificYeastSpecific.py
+# Plant-specific activators (label 0) vs yeast-specific activators (label 1).
+#
+# Same model as the original script on main (two random forests: the first one ranks
+# the features, the second one is trained on the top 100). Lines marked "CHANGED:" differ
+# from main. The main differences are:
+#   1. Control tiles ("control_...") are removed; they are not TF sequence.
+#   2. Instead of one 60:40 train:test split, we use 5-fold cross-validation where all
+#      tiles from the same TF are kept in the same fold. Overlapping tiles of one TF are
+#      very similar, so if some are in training and others in testing, the test score is
+#      too optimistic. Every tile is tested exactly once, by the model that did not see its TF.
+#   3. Dropping NaN columns and picking the top 100 features is done inside each fold using
+#      only the training tiles, so the test tiles never influence which features are used.
+#   4. Disorder features are included (main started the features after the disorder columns).
+#   5. Figures are saved as SVG files instead of shown on screen (see plotting.py).
+
+import re
 from pathlib import Path
 
-import matplotlib as mpl
-mpl.use("Agg")
-import matplotlib.pyplot as plt
-from matplotlib.collections import PathCollection
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import shap
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(SCRIPT_DIR.parent))
-from plot_classification_metrics import save_performance_figures, save_roc_curve
-
-DEFAULT_INPUT = SCRIPT_DIR / "June26YeastPlantSpecificcombined_activator_dataset1_finalData1.csv"
-SHARED_FEATURES_FILE = SCRIPT_DIR.parent.parent / "data" / "plant_TF_all_data_annotated_features.csv"
-DEFAULT_OUTPUT_DIR = SCRIPT_DIR / "shap_figures"
-CLASS_NAMES = ("plant-specific", "yeast-specific")
-SWARM_MAX_DISPLAY = 25
-SWARM_CMAP = "magma"
-SWARM_HEIGHT_SCALE = 1.75
-REDUNDANT_DISORDER_COL = "Mean Disorder"
+import plotting
 
 
-def apply_figure_style(fontsize=7):
-    plt.style.use("default")
-    mpl.rcParams["font.sans-serif"] = "Arial"
-    mpl.rcParams["font.family"] = "sans-serif"
-    mpl.rcParams["font.size"] = fontsize
-    mpl.rcParams["axes.labelsize"] = fontsize
-    mpl.rcParams["xtick.labelsize"] = fontsize
-    mpl.rcParams["ytick.labelsize"] = fontsize
-    mpl.rcParams["legend.fontsize"] = fontsize
-    mpl.rcParams["svg.fonttype"] = "none"  # save text as text, not paths
-    mpl.rcParams["axes.linewidth"] = 0.5
-    mpl.rcParams["xtick.major.width"] = 0.5
-    mpl.rcParams["ytick.major.width"] = 0.5
-    mpl.rcParams["xtick.minor.width"] = 0.5
-    mpl.rcParams["ytick.minor.width"] = 0.5
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+
+REPO_DIR = Path(__file__).resolve().parent
+TF_LIBRARY_DIR = REPO_DIR.parent.parent
+
+# Dataset made by combined_yeastSpecificvsplantSpecific.py
+INPUT_FILE = REPO_DIR / "June26YeastPlantSpecificcombined_activator_dataset1_finalData1.csv"
+# Annotated features of all plant tiles; used only to get the latest disorder values
+SHARED_FEATURES_FILE = TF_LIBRARY_DIR / "data" / "plant_TF_all_data_annotated_features.csv"
+# one folder name per model, so outputs don't overwrite each other if the activator
+# scripts are run from the same folder
+OUTPUT_DIR = REPO_DIR / "shap_figures_plantspecific_vs_yeastspecific"
+
+CLASS_NAMES = ("plant-specific", "yeast-specific")  # label 0, label 1
+
+N_FOLDS = 5                   # 5-fold cross-validation: each fold tests ~20% of the tiles
+N_TOP_FEATURES = 100          # features kept for the second random forest
+N_SHAP_TILES_PER_FOLD = 200   # held-out tiles explained with SHAP in each fold (1000 total)
+RANDOM_STATE = 42
+
+# Figure settings
+FIGSIZE = (1.8, 1.8)          # inches
+FONT_SIZE = 7
+MARKER_SIZE = 5               # beeswarm dot size
+BEESWARM_CMAP = "magma"
+BEESWARM_MAX_DISPLAY = 25     # features shown in the beeswarm plot
+BEESWARM_HEIGHT_SCALE = 1.75  # beeswarm is taller than the other plots
+CMAP = "coolwarm"             # low/high feature value colors in the mean-SHAP plots
+MAX_DISPLAY = 15              # features shown in the other SHAP plots
+
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+plotting.apply_figure_style(fontsize=FONT_SIZE)
 
 
-def apply_font_size(fig, fontsize=7):
-    """SHAP hardcodes fontsize=13/11; override all text after plotting."""
-    for ax in fig.get_axes():
-        ax.title.set_fontsize(fontsize)
-        ax.xaxis.label.set_fontsize(fontsize)
-        ax.yaxis.label.set_fontsize(fontsize)
-        ax.tick_params(axis="both", labelsize=fontsize)
-        for label in ax.get_xticklabels() + ax.get_yticklabels():
-            label.set_fontsize(fontsize)
-        for text in ax.texts:
-            text.set_fontsize(fontsize)
+# ---------------------------------------------------------------------------
+# Load the dataset
+# ---------------------------------------------------------------------------
 
-
-def _shap_groups_by_feature_value(shap_values, X, feature_names, max_display):
-    """Split each feature at its median into low vs high value groups."""
-    shap_values = np.asarray(shap_values)
-    X = pd.DataFrame(X)
-    feature_names = np.asarray(feature_names)
-    n_show = min(max_display, shap_values.shape[1])
-    order = np.argsort(np.abs(shap_values).mean(axis=0))[-n_show:]
-    names = feature_names[order]
-    low_groups = []
-    high_groups = []
-    for col_i in order:
-        name = feature_names[col_i]
-        if name in X.columns:
-            vals = pd.to_numeric(X[name], errors="coerce").to_numpy()
-        else:
-            vals = pd.to_numeric(X.iloc[:, int(col_i)], errors="coerce").to_numpy()
-        s = shap_values[:, col_i]
-        med = np.nanmedian(vals)
-        low = s[vals <= med]
-        high = s[vals > med]
-        if low.size == 0:
-            low = s
-        if high.size == 0:
-            high = s
-        low_groups.append(low)
-        high_groups.append(high)
-    return names, low_groups, high_groups
-
-
-def plot_class_mean_shap_bars(
-    shap_values,
-    X,
-    feature_names,
-    max_display,
-    figsize,
-    cmap,
-    fontsize,
-    path,
-):
-    """Average SHAP values for low vs high feature values.
-
-    Each feature is split at its median. Coolwarm blue = low feature value,
-    red = high, matching the beeswarm colormap.
-    """
-    names, low_groups, high_groups = _shap_groups_by_feature_value(
-        shap_values, X, feature_names, max_display
-    )
-    low_means = np.array([g.mean() for g in low_groups])
-    high_means = np.array([g.mean() for g in high_groups])
-
-    cmap_obj = mpl.colormaps.get_cmap(cmap)
-    low_color = cmap_obj(0.15)
-    high_color = cmap_obj(0.85)
-
-    fig, ax = plt.subplots(figsize=figsize)
-    y_pos = np.arange(len(names))
-    ax.barh(y_pos, low_means, color=low_color, height=0.65, label="low feature value")
-    ax.barh(y_pos, high_means, color=high_color, height=0.65, label="high feature value")
-    ax.axvline(0, color="#999999", linewidth=0.5)
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(names)
-    ax.set_xlabel("mean SHAP value")
-    ax.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.02),
-        ncol=2,
-        frameon=False,
-        handlelength=1.0,
-        borderaxespad=0,
-    )
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    apply_font_size(fig, fontsize=fontsize)
-    fig.savefig(path, format="svg", bbox_inches="tight")
-    plt.close(fig)
-
-
-def plot_class_mean_shap_points(
-    shap_values,
-    X,
-    feature_names,
-    max_display,
-    figsize,
-    cmap,
-    fontsize,
-    path,
-):
-    """Mean SHAP for low vs high feature values, with SD error bars."""
-    names, low_groups, high_groups = _shap_groups_by_feature_value(
-        shap_values, X, feature_names, max_display
-    )
-
-    def _mean_std(groups):
-        means = np.array([g.mean() for g in groups])
-        stds = np.array([g.std(ddof=1) if g.size > 1 else 0.0 for g in groups])
-        return means, stds
-
-    low_means, low_stds = _mean_std(low_groups)
-    high_means, high_stds = _mean_std(high_groups)
-
-    cmap_obj = mpl.colormaps.get_cmap(cmap)
-    low_color = cmap_obj(0.15)
-    high_color = cmap_obj(0.85)
-
-    fig, ax = plt.subplots(figsize=figsize)
-    y_pos = np.arange(len(names))
-    offset = 0.18
-    err_style = dict(
-        fmt="o",
-        markersize=2.5,
-        capsize=0,
-        elinewidth=0.5,
-        markeredgewidth=0.4,
-        linestyle="none",
-    )
-    ax.errorbar(
-        low_means,
-        y_pos + offset,
-        xerr=low_stds,
-        color=low_color,
-        label="low feature value",
-        **err_style,
-    )
-    ax.errorbar(
-        high_means,
-        y_pos - offset,
-        xerr=high_stds,
-        color=high_color,
-        label="high feature value",
-        **err_style,
-    )
-    ax.axvline(0, color="#999999", linewidth=0.5)
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(names)
-    ax.set_xlabel("mean SHAP value ± SD")
-    ax.set_ylim(-0.6, len(names) - 0.4)
-    ax.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.02),
-        ncol=2,
-        frameon=False,
-        handlelength=1.0,
-        borderaxespad=0,
-    )
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    apply_font_size(fig, fontsize=fontsize)
-    fig.savefig(path, format="svg", bbox_inches="tight")
-    plt.close(fig)
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Train plant-specific vs yeast-specific activator model and save SHAP plots."
-    )
-    parser.add_argument(
-        "--input",
-        type=Path,
-        default=DEFAULT_INPUT,
-        help="Path to combined activator dataset CSV.",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=DEFAULT_OUTPUT_DIR,
-        help="Directory to save SHAP figures.",
-    )
-    parser.add_argument(
-        "--figsize",
-        type=float,
-        nargs=2,
-        metavar=("WIDTH", "HEIGHT"),
-        default=(1.8, 1.8),
-        help="Figure size in inches (width height). Default: 1.8 1.8",
-    )
-    parser.add_argument(
-        "--cmap",
-        default="coolwarm",
-        help="Matplotlib colormap for the beeswarm plot. Default: coolwarm",
-    )
-    parser.add_argument(
-        "--max-display",
-        type=int,
-        default=15,
-        help="Number of top features to show in SHAP plots. Default: 15",
-    )
-    parser.add_argument(
-        "--font-size",
-        type=float,
-        default=7,
-        help="Font size for all plot text (pt). Default: 7",
-    )
-    parser.add_argument(
-        "--marker-size",
-        type=float,
-        default=5,
-        help="Beeswarm marker area in points^2 (matplotlib scatter s). Default: 5",
-    )
-    return parser.parse_args()
-
-
-args = parse_args()
-input_path = args.input.expanduser().resolve()
-output_dir = args.output_dir.expanduser().resolve()
-output_dir.mkdir(parents=True, exist_ok=True)
-figsize = tuple(args.figsize)
-cmap = args.cmap
-max_display = args.max_display
-font_size = args.font_size
-marker_size = args.marker_size
-apply_figure_style(fontsize=font_size)
-
-if not input_path.is_file():
-    raise FileNotFoundError(
-        f"Input dataset not found: {input_path}\n"
-        "Pass the CSV path with --input /path/to/"
-        "June26YeastPlantSpecificcombined_activator_dataset1_finalData1.csv"
-    )
-
-# Load dataset
-dataset = pd.read_csv(input_path)
-if REDUNDANT_DISORDER_COL in dataset.columns:
-    dataset = dataset.drop(columns=[REDUNDANT_DISORDER_COL])
-    print(f"Dropped redundant column: {REDUNDANT_DISORDER_COL}")
-if SHARED_FEATURES_FILE.is_file() and "#Feature" in dataset.columns:
-    latest = pd.read_csv(
-        SHARED_FEATURES_FILE,
-        usecols=["#Feature", "tile_context_disorder", "tile_intrinsic_disorder"],
-    ).drop_duplicates(subset=["#Feature"], keep="first")
-    latest_idx = latest.set_index("#Feature")
-    for col in ("tile_context_disorder", "tile_intrinsic_disorder"):
-        mapped = dataset["#Feature"].map(latest_idx[col])
-        if col in dataset.columns:
-            dataset[col] = mapped.fillna(dataset[col])
-        else:
-            dataset[col] = mapped
-    print(f"Disorder columns taken from {SHARED_FEATURES_FILE}")
+dataset = pd.read_csv(INPUT_FILE)
 
 print("Dataset shape:", dataset.shape)
 
-label_col = dataset.columns[-1]
-
-n_class0 = (dataset[label_col] == 0).sum()
-class0 = dataset[dataset[label_col] == 0].sample(
-    n=min(800, n_class0),
-    random_state=42
+# CHANGED: remove control tiles
+is_control = (
+    dataset["#Feature"].astype(str).str.strip().str.lower().str.startswith("control_")
 )
+dataset = dataset[~is_control].copy()
+print("Control tiles removed:", is_control.sum())
 
-class1 = dataset[dataset[label_col] == 1]
+# CHANGED: "Mean Disorder" is dropped because it is redundant with tile_context_disorder
+if "Mean Disorder" in dataset.columns:
+    dataset = dataset.drop(columns=["Mean Disorder"])
 
-dataset = pd.concat([class0, class1], axis=0)
+# CHANGED: take the two disorder features from the latest annotated features file
+latest_disorder = pd.read_csv(
+    SHARED_FEATURES_FILE,
+    usecols=["#Feature", "tile_context_disorder", "tile_intrinsic_disorder"],
+).drop_duplicates(subset=["#Feature"], keep="first")
+latest_disorder = latest_disorder.set_index("#Feature")
+
+for col in ["tile_context_disorder", "tile_intrinsic_disorder"]:
+    new_values = dataset["#Feature"].map(latest_disorder[col])
+    if col in dataset.columns:
+        dataset[col] = new_values.fillna(dataset[col])  # keep the old value if a tile is missing
+    else:
+        dataset[col] = new_values
+
+# Keep the label as the last column
+label_col = "label"
+dataset = dataset[[c for c in dataset.columns if c != label_col] + [label_col]]
+
+print("Dataset shape after removing controls:", dataset.shape)
+
+# CHANGED: the class-0 subsampling step was removed (on main it sampled all class-0
+# tiles, so it did nothing). As on main, both random forests use class_weight="balanced".
 
 # Shuffle
 dataset = dataset.sample(
@@ -315,20 +111,19 @@ dataset = dataset.sample(
     random_state=42
 ).reset_index(drop=True)
 
-print("\nDataset after class-0 subsampling:")
+print("\nLabel distribution:")
 print(dataset[label_col].value_counts().sort_index())
-print("New dataset shape:", dataset.shape)
 
-# Column P = index 15 (0-based), hence I put index 14
+
+# CHANGED: index 14 instead of 16, because "Mean Disorder" was dropped above and the
+# disorder features are now included. Features start at index 15 (tile_context_disorder).
 sequence_col_idx = 14
+#one index before the start of the features
 
-# Last column is label
-label_col = dataset.columns[-1]
+feature_cols = [c for c in dataset.columns[sequence_col_idx + 1:] if c != label_col]
+#everything after sequence_col_idx except the label column
 
-# Features are everything after and including column P up to but not including label(the last column)
-feature_cols = dataset.columns[sequence_col_idx + 1:-1]
-
-print("\nSequence column:", dataset.columns[sequence_col_idx])
+print("\nLast column before the features:", dataset.columns[sequence_col_idx])
 print("Label column:", label_col)
 print("Number of features:", len(feature_cols))
 
@@ -336,89 +131,155 @@ X = dataset[feature_cols]
 y = dataset[label_col]
 
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.4,
-    random_state=42,
-    stratify=y
-)
-
-# Find columns with NaNs using training data only
-nan_counts = X_train.isna().sum()
-nan_cols = nan_counts[nan_counts > 0]
-
-# Drop those columns from both train and test
-X_train = X_train.drop(columns=nan_cols.index)
-X_test = X_test.drop(columns=nan_cols.index)
-
-print("Dropped", len(nan_cols), "columns.")
-print("Remaining features:", X_train.shape[1])
-print("\nDropped columns:")
-for col in nan_cols.index:
-    print(col)
-
-print("\nTraining label distribution:")
-print(y_train.value_counts().sort_index())
-
-print("\nTesting label distribution:")
-print(y_test.value_counts().sort_index())
+# CHANGED: group the tiles by TF, so all tiles of one TF end up in the same fold.
+# Arabidopsis tile IDs start with the gene locus (e.g. AT1G01010_...). For other IDs we
+# use everything before the last "_".
+def get_tf_group(tile_id):
+    match = re.match(r"^(AT[1-5CM]G\d{5})", tile_id, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).upper()
+    return tile_id.rsplit("_", 1)[0]
 
 
+groups = dataset["#Feature"].astype(str).apply(get_tf_group)
 
-model = RandomForestClassifier(
-    n_estimators=200,
-    max_depth=10,
-    n_jobs=-1,
-    random_state=42
-)
-
-model.fit(X_train, y_train)
+print("Number of TFs (groups):", groups.nunique())
 
 
-# Select Top 300 features using RF importance
+# ---------------------------------------------------------------------------
+# CHANGED: 5-fold cross-validation instead of one 60:40 train:test split.
+# StratifiedGroupKFold keeps all tiles of a TF in one fold and keeps the class ratio
+# similar across folds. Each fold: train on 4/5 of the TFs, test on the remaining 1/5.
+# ---------------------------------------------------------------------------
 
-importance_df = pd.DataFrame({
-    "Feature": X_train.columns,
-    "Importance": model.feature_importances_
-})
+cv = StratifiedGroupKFold(n_splits=N_FOLDS, shuffle=True, random_state=RANDOM_STATE)
 
-importance_df = importance_df.sort_values(
-    "Importance",
-    ascending=False
-)
+# Filled in fold by fold; every tile gets exactly one out-of-fold prediction
+all_predictions = np.full(len(dataset), -1)
+all_scores = np.full(len(dataset), np.nan)   # predicted probability of class 1
+all_folds = np.zeros(len(dataset), dtype=int)
 
-top300_features = importance_df.head(100)["Feature"].tolist()
+fold_top_features = []   # top 100 features chosen in each fold
+fold_importances = []    # first-forest importance of every feature, per fold
+shap_values_per_fold = []
+shap_tiles_per_fold = []
 
-print("\nTop 10 RF Features:")
-print(importance_df.head(10))
+for fold, (train_idx, test_idx) in enumerate(cv.split(X, y, groups), start=1):
 
-print("\nNumber of selected features:", len(top300_features))
+    print(f"\n========== Fold {fold} of {N_FOLDS} ==========")
+
+    X_train = X.iloc[train_idx]
+    X_test = X.iloc[test_idx]
+    y_train = y.iloc[train_idx]
+    y_test = y.iloc[test_idx]
+
+    print("Training label distribution:")
+    print(y_train.value_counts().sort_index())
+
+    print("Testing label distribution:")
+    print(y_test.value_counts().sort_index())
+
+    # CHANGED: columns with missing values are found in the training tiles only
+    nan_cols = X_train.columns[X_train.isna().any()].tolist()
+    X_train_no_nan = X_train.drop(columns=nan_cols)
+
+    print("Number of features after dropping NaN columns:", X_train_no_nan.shape[1])
+
+    # First random forest: rank the features
+    model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=10,
+        n_jobs=-1,
+        random_state=42,
+        class_weight="balanced"  # larger class does not dominate
+    )
+
+    model.fit(X_train_no_nan, y_train)
+
+    # Select Top 100 features using RF importance
+
+    importance_df = pd.DataFrame({
+        "Feature": X_train_no_nan.columns,
+        "Importance": model.feature_importances_
+    })
+
+    importance_df = importance_df.sort_values(
+        "Importance",
+        ascending=False
+    )
+
+    top_features = importance_df.head(N_TOP_FEATURES)["Feature"].tolist()
+
+    print("\nTop 10 RF Features:")
+    print(importance_df.head(10))
+
+    # Keep only the top 100 features
+
+    X_train_top = X_train[top_features]
+    # CHANGED: a few test tiles have missing values in a selected feature. They are filled
+    # with the median of the training tiles (or 0 if the whole training column is missing).
+    X_test_top = X_test[top_features].fillna(X_train_top.median()).fillna(0)
+
+    # Second random forest: trained on the top 100 features only
+    model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=10,
+        n_jobs=-1,
+        random_state=42,
+        class_weight="balanced"  # larger class does not dominate
+    )
+
+    model.fit(X_train_top, y_train)
+
+    predictions = model.predict(X_test_top)
+    scores = model.predict_proba(X_test_top)[:, 1]  # column 1 = probability of label 1
+
+    print("\nFold accuracy:", accuracy_score(y_test, predictions))
+
+    # Save this fold's results for the held-out tiles
+    all_predictions[test_idx] = predictions
+    all_scores[test_idx] = scores
+    all_folds[test_idx] = fold
+    fold_top_features.append(top_features)
+    fold_importances.append(importance_df.set_index("Feature")["Importance"])
+
+    # SHAP on a random sample of this fold's held-out tiles
+    explainer = shap.TreeExplainer(model)
+
+    X_sample = X_test_top.sample(
+        n=min(N_SHAP_TILES_PER_FOLD, len(X_test_top)),
+        random_state=42
+    )
+    shap_values = explainer.shap_values(X_sample)
+
+    # Binary classification: keep the SHAP values for label 1
+    if isinstance(shap_values, list):
+        shap_values = shap_values[1]
+    else:
+        shap_values = shap_values[:, :, 1]
+
+    # Each fold picks its own top 100, so we put the SHAP values in a table with all
+    # features. Features this fold's model did not use get SHAP = 0 (no effect).
+    shap_all_features = pd.DataFrame(0.0, index=X_sample.index, columns=feature_cols)
+    shap_all_features[top_features] = shap_values
+    shap_values_per_fold.append(shap_all_features)
+    shap_tiles_per_fold.append(X.loc[X_sample.index, feature_cols])
 
 
+# ---------------------------------------------------------------------------
+# Results: all tiles, each predicted by the model that did not see its TF
+# ---------------------------------------------------------------------------
 
-#predictions = model.predict(X_test)
-# Keep only top 300 features
+y_test = y.to_numpy()
+predictions = all_predictions
+y_score = all_scores
 
-X_train_top300 = X_train[top300_features]
-X_test_top300 = X_test[top300_features]
+print("\n========== All folds combined ==========")
 
-# Train new RF
-
-model = RandomForestClassifier(
-    n_estimators=200,
-    max_depth=10,
-    n_jobs=-1,
-    random_state=42
-)
-
-model.fit(X_train_top300, y_train)
-
-predictions = model.predict(X_test_top300)
-class1_idx = list(model.classes_).index(1)
-y_score = model.predict_proba(X_test_top300)[:, class1_idx]
-
-
+for fold in range(1, N_FOLDS + 1):
+    in_fold = all_folds == fold
+    print(f"Fold {fold}: {in_fold.sum()} held-out tiles, "
+          f"label counts {np.bincount(y_test[in_fold], minlength=2).tolist()}")
 
 print("\nAccuracy:", accuracy_score(y_test, predictions))
 
@@ -428,131 +289,87 @@ print(confusion_matrix(y_test, predictions))
 print("\nClassification Report:")
 print(classification_report(y_test, predictions))
 
+
+# How often each feature made the top 100 across the 5 folds
+selection_counts = pd.Series(0, index=feature_cols, dtype=int)
+for top_features in fold_top_features:
+    selection_counts[top_features] += 1
+
+importance_table = pd.concat(fold_importances, axis=1)  # one column per fold
+mean_importance = importance_table.reindex(feature_cols).fillna(0).mean(axis=1)
+
+selection_df = pd.DataFrame({
+    "feature": feature_cols,
+    "n_folds_selected": selection_counts.values,
+    "fraction_folds_selected": selection_counts.values / N_FOLDS,
+    "mean_rf_importance": mean_importance.values,
+})
+selection_df = selection_df.sort_values(
+    ["n_folds_selected", "mean_rf_importance"],
+    ascending=False
+).reset_index(drop=True)
+
+selection_path = OUTPUT_DIR / "feature_selection_frequency.csv"
+selection_df.to_csv(selection_path, index=False)
+print(f"\nSaved: {selection_path}")
+print(selection_df.head(10).to_string(index=False))
+
+
+# ---------------------------------------------------------------------------
+# Figures (saved as SVG in OUTPUT_DIR)
+# ---------------------------------------------------------------------------
+
 print("\nSaving performance figures...")
-metrics_path, truth_path = save_performance_figures(
-    y_test,
-    predictions,
-    output_dir,
+
+plotting.save_metrics_barplot(
+    y_test, predictions, OUTPUT_DIR / "performance_metrics_bar.svg",
     class_names=CLASS_NAMES,
-    figsize=figsize,
-    fontsize=font_size,
+    figsize=(max(FIGSIZE[0] * 2.5, 3.5), FIGSIZE[1]),  # wider, to fit the labels
+    fontsize=FONT_SIZE,
 )
-save_roc_curve(
-    y_true=y_test,
-    y_score=y_score,
-    output_dir=output_dir,
-    figsize=figsize,
-    fontsize=font_size,
+plotting.save_truth_table(
+    y_test, predictions, OUTPUT_DIR / "truth_table.svg",
+    class_names=CLASS_NAMES, figsize=FIGSIZE, fontsize=FONT_SIZE,
+)
+plotting.save_roc_curve(
+    y_test, y_score, OUTPUT_DIR / "roc_curve.svg",
+    figsize=FIGSIZE, fontsize=FONT_SIZE,
 )
 
 # SHAP
-print("\nRunning SHAP...")
+print("\nSaving SHAP figures...")
 
-explainer = shap.TreeExplainer(model)
+# SHAP values of the 1000 explained held-out tiles (200 per fold), all folds together.
+# Columns are sorted from most to least important (mean |SHAP|).
+# Positive SHAP values (right side of the plots) push a tile toward label 1.
+shap_values = pd.concat(shap_values_per_fold).to_numpy()
+X_sample = pd.concat(shap_tiles_per_fold).reset_index(drop=True)
 
-#X_sample = X_test.sample(
- #   n=min(1000, len(X_test)),
-  #  random_state=42
-#)
+shap_order = np.argsort(-np.abs(shap_values).mean(axis=0))
+shap_values = shap_values[:, shap_order]
+X_sample = X_sample.iloc[:, shap_order]
 
-X_sample = X_test_top300.sample(
-    n=min(1000, len(X_test_top300)),
-    random_state=42
+plotting.save_shap_beeswarm(
+    shap_values, X_sample, OUTPUT_DIR / "shap_summary_beeswarm.svg",
+    cmap=BEESWARM_CMAP, max_display=BEESWARM_MAX_DISPLAY,
+    figsize=FIGSIZE, height_scale=BEESWARM_HEIGHT_SCALE,
+    fontsize=FONT_SIZE, marker_size=MARKER_SIZE,
 )
-y_sample = y_test.loc[X_sample.index]
-shap_values = explainer.shap_values(X_sample)
-
-# Binary classification
-if isinstance(shap_values, list):
-    shap_for_plot = shap_values[1]
-else:
-    shap_for_plot = shap_values[:, :, 1]
-
-summary_path = output_dir / "shap_summary_beeswarm.svg"
-bar_path = output_dir / "shap_summary_bar.svg"
-class_mean_path = output_dir / "shap_summary_class_mean_bars.svg"
-class_mean_points_path = output_dir / "shap_summary_class_mean_points.svg"
-
-
-def save_vector_svg(path, fontsize=7, marker_size=5):
-    """Force vector markers and override SHAP's hardcoded font/marker sizes."""
-    fig = plt.gcf()
-    apply_font_size(fig, fontsize=fontsize)
-    for ax in fig.get_axes():
-        for collection in ax.collections:
-            collection.set_rasterized(False)
-            if isinstance(collection, PathCollection):
-                collection.set_sizes([marker_size])
-        for image in list(ax.images):
-            image.set_rasterized(False)
-        for artist in ax.get_children():
-            if hasattr(artist, "set_rasterized"):
-                artist.set_rasterized(False)
-    fig.savefig(path, format="svg", bbox_inches="tight")
-    plt.close(fig)
-
-
-shap.summary_plot(
-    shap_for_plot,
-    X_sample,
-    plot_type="dot",
-    cmap=SWARM_CMAP,
-    plot_size=(figsize[0], figsize[1] * SWARM_HEIGHT_SCALE),
-    max_display=SWARM_MAX_DISPLAY,
-    show=False,
+plotting.save_shap_bar(
+    shap_values, X_sample, OUTPUT_DIR / "shap_summary_bar.svg",
+    max_display=MAX_DISPLAY, figsize=FIGSIZE,
+    fontsize=FONT_SIZE, marker_size=MARKER_SIZE,
 )
-save_vector_svg(summary_path, fontsize=font_size, marker_size=marker_size)
-print(f"Saved: {summary_path}")
-
-shap.summary_plot(
-    shap_for_plot,
-    X_sample,
-    plot_type="bar",
-    plot_size=figsize,
-    max_display=max_display,
-    show=False,
+plotting.save_class_mean_shap_bars(
+    shap_values, X_sample, OUTPUT_DIR / "shap_summary_class_mean_bars.svg",
+    max_display=MAX_DISPLAY, figsize=FIGSIZE, cmap=CMAP, fontsize=FONT_SIZE,
 )
-save_vector_svg(bar_path, fontsize=font_size, marker_size=marker_size)
-print(f"Saved: {bar_path}")
-
-plot_class_mean_shap_bars(
-    shap_for_plot,
-    X_sample,
-    X_sample.columns,
-    max_display=max_display,
-    figsize=figsize,
-    cmap=cmap,
-    fontsize=font_size,
-    path=class_mean_path,
+plotting.save_class_mean_shap_points(
+    shap_values, X_sample, OUTPUT_DIR / "shap_summary_class_mean_points.svg",
+    max_display=MAX_DISPLAY, figsize=(FIGSIZE[0] * 0.85 * 0.85, FIGSIZE[1]),
+    cmap=CMAP, fontsize=FONT_SIZE,
 )
-print(f"Saved: {class_mean_path}")
-
-plot_class_mean_shap_points(
-    shap_for_plot,
-    X_sample,
-    X_sample.columns,
-    max_display=max_display,
-    figsize=(figsize[0] * 0.85 * 0.85, figsize[1]),
-    cmap=cmap,
-    fontsize=font_size,
-    path=class_mean_points_path,
-)
-print(f"Saved: {class_mean_points_path}")
 
 print("SHAP version:", shap.__version__)
-print("Expected value:", explainer.expected_value)
-
-print(type(shap_values))
-
-if isinstance(shap_values, list):
-    print(shap_values[1].shape)
-    print(shap_values[1].min(), shap_values[1].max())
-else:
-    print(shap_values.shape)
-    print(shap_values[:, :, 1].min(), shap_values[:, :, 1].max())
-
-print(f"\nFigures written to: {output_dir}")
-print(
-    f"figsize={figsize}, cmap={cmap}, max_display={max_display}, "
-    f"font_size={font_size}, marker_size={marker_size}"
-)
+print("SHAP matrix (explained tiles x features):", shap_values.shape)
+print(f"\nFigures written to: {OUTPUT_DIR}")

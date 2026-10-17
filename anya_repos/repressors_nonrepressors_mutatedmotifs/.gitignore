@@ -5,3 +5,4 @@ shap_figures/sequence_model_scores.csv
 shap_figures/shap_summary_bar.svg
 shap_figures/shap_summary_beeswarm.svg
 shap_figures/truth_table.svg
+__pycache__/

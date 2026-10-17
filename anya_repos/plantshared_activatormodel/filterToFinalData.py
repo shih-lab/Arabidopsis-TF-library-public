@@ -1,14 +1,12 @@
 import pandas as pd
 from pathlib import Path
+# CHANGED: file locations (main read and wrote everything in ~/Downloads)
+REPO_DIR = Path(__file__).resolve().parent     # this repo
+TF_LIBRARY_DIR = REPO_DIR.parent.parent        # TF_library folder (has data/ and the Morffy file)
 #combine the two files (plants only and shared). Add a new column to both files before concatenation -- plants only is 0 and shared is 1
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-PLANT_ONLY = SCRIPT_DIR / "plantsOnlyActivatorsNOTyeast_finalData_june5.csv"
-PLANT_YEAST = SCRIPT_DIR / "matched_activator_fragmentsSet2_actual_finalData_June5.csv"
-OUT = SCRIPT_DIR / "June26combined_activator_dataset1_finalData1.csv"
-
-plant_only = pd.read_csv(PLANT_ONLY)
-plant_yeast = pd.read_csv(PLANT_YEAST)
+# updated filterToFinalData.py
+plant_only = pd.read_csv(REPO_DIR / "plantsOnlyActivatorsNOTyeast_finalData_june5.csv")
+plant_yeast = pd.read_csv(REPO_DIR / "matched_activator_fragmentsSet2_actual_finalData_June5.csv")
 
 
 
@@ -26,7 +24,7 @@ combined = pd.concat([plant_only, plant_yeast], ignore_index=True)
 combined = combined.sample(frac=1, random_state=42).reset_index(drop=True)
 
 
-combined.to_csv(OUT, index=False)
+combined.to_csv(REPO_DIR / "June26combined_activator_dataset1_finalData1.csv", index=False)
 print(len(combined))
 #combined = combined.drop(columns=[combined.columns[-2]])
 
@@ -35,4 +33,3 @@ print(len(combined))
 print("Plant-only activators:", len(plant_only))
 print("Plant+Yeast activators:", len(plant_yeast))
 print("Total sequences:", len(combined))
-print(f"Wrote: {OUT}")

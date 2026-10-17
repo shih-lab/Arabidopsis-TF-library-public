@@ -22,54 +22,27 @@ import re
 import pandas as pd
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-TF_LIBRARY_DATA = SCRIPT_DIR.parent.parent / "data"
+# CHANGED: file locations (main read and wrote everything in ~/Downloads)
+REPO_DIR = Path(__file__).resolve().parent     # this repo
+TF_LIBRARY_DIR = REPO_DIR.parent.parent        # TF_library folder (has data/)
 
-INPUT_FILE = TF_LIBRARY_DATA / "plant_TF_all_data_annotated_features.csv"
-REDUNDANT_DISORDER_COL = "Mean Disorder"
 
-REPRESSORS_FILE = SCRIPT_DIR / "repressors_past.csv"
-NONREPRESSORS_FILE = SCRIPT_DIR / "nonrepressors_past.csv"
-FINAL_FILE = SCRIPT_DIR / "repressors_nonrepressors.csv"
+INPUT_FILE = TF_LIBRARY_DIR / "data" / "all_data_6_2026_relaxed_annotated_features.csv"
+
+REPRESSORS_FILE = REPO_DIR / "repressors_past.csv"
+NONREPRESSORS_FILE = REPO_DIR / "nonrepressors_past.csv"
+FINAL_FILE = REPO_DIR / "repressors_nonrepressors.csv"
 
 FEATURE_COL = "#Feature"
 QUALITY_COL = "quality"
-SEQ_COL = "protein_seq"
 
 RANDOM_STATE = 42
-
-# --- Configure motif regexes (same panel as scan_EAR_motifs.py) ---
-EAR_MOTIFS = {
-    "EAR_LxLxL_strict": re.compile(r"L.L.L"),
-    "EAR_DLNxxP_strict": re.compile(r"DLN..P"),
-    # Optional:
-    "EAR_DLNxP_optional": re.compile(r"DLN.P"),
-    "EAR_DLNxxxP_optional": re.compile(r"DLN...P"),
-    # Optional hydrophobic broadened:
-    # "EAR_hydrophobic_x3_optional": re.compile(r"[LIV].[LIV].[LIV]"),
-}
-# --- curated known non-EAR motif panel ---
-KNOWN_NON_EAR = {
-    "WUS_box_TLxLFP": re.compile(r"TL.LFP(..)?"),
-    "TIFY_TIFY": re.compile(r"TIFY"),
-    #"TIFY_TIxxYG": re.compile(r"TI..YG"),
-    "TPL_LFG": re.compile(r"[RK]LFG[VI]"),
-}
-
-KNOW_REP_MOTIFS = EAR_MOTIFS | KNOWN_NON_EAR
-
-
-def has_known_rep_motif(seq):
-    """True if protein_seq has at least one KNOW_REP_MOTIFS hit."""
-    if not isinstance(seq, str):
-        return False
-    s = seq.strip().upper()
-    if not s or s == "NAN":
-        return False
-    return any(pat.search(s) for pat in KNOW_REP_MOTIFS.values())
-
-
 df = pd.read_csv(INPUT_FILE)
+
+# CHANGED: remove control tiles ("control_..."); they are not TF sequence
+is_control = df[FEATURE_COL].astype(str).str.strip().str.lower().str.startswith("control_")
+df = df[~is_control].copy()
+print("Control tiles removed:", is_control.sum())
 
 print("Original number of rows:", len(df))
 
@@ -77,19 +50,36 @@ df = df.drop_duplicates(subset=[FEATURE_COL], keep="first").copy()
 
 print("Number of rows after removing duplicate #Feature values:", len(df))
 
-if REDUNDANT_DISORDER_COL in df.columns:
-    df = df.drop(columns=[REDUNDANT_DISORDER_COL])
-    print(f"Dropped redundant column: {REDUNDANT_DISORDER_COL}")
+# CHANGED: "Mean Disorder" is dropped because it is redundant with tile_context_disorder
+if "Mean Disorder" in df.columns:
+    df = df.drop(columns=["Mean Disorder"])
 
-if SEQ_COL not in df.columns:
-    raise KeyError(
-        f"Sequence column {SEQ_COL!r} not found in {INPUT_FILE}. "
-        f"Columns: {list(df.columns[:20])}"
-    )
-has_motif = df[SEQ_COL].map(has_known_rep_motif)
-print("Tiles with at least one canonical motif (removed):", int(has_motif.sum()))
-df = df.loc[~has_motif].copy()
-print("Number of rows after removing motif-containing tiles:", len(df))
+# CHANGED (this repo only): remove every tile with at least one known repressor motif,
+# so the model has to find other sequence features. Motif panel (regular expressions):
+# EAR motifs LxLxL, DLNxxP, DLNxP, DLNxxxP, and the non-EAR motifs WUS box, TIFY and TPL LFG.
+KNOWN_REPRESSOR_MOTIFS = {
+    "EAR_LxLxL": re.compile(r"L.L.L"),
+    "EAR_DLNxxP": re.compile(r"DLN..P"),
+    "EAR_DLNxP": re.compile(r"DLN.P"),
+    "EAR_DLNxxxP": re.compile(r"DLN...P"),
+    "WUS_box_TLxLFP": re.compile(r"TL.LFP(..)?"),
+    "TIFY": re.compile(r"TIFY"),
+    "TPL_LFG": re.compile(r"[RK]LFG[VI]"),
+}
+
+
+def has_known_repressor_motif(seq):
+    if not isinstance(seq, str):
+        return False
+    seq = seq.strip().upper()
+    return any(motif.search(seq) for motif in KNOWN_REPRESSOR_MOTIFS.values())
+
+
+has_motif = df["protein_seq"].map(has_known_repressor_motif)
+df = df[~has_motif].copy()
+
+print("Tiles with a known repressor motif (removed):", has_motif.sum())
+print("Number of rows after removing motif tiles:", len(df))
 
 
 
@@ -112,8 +102,9 @@ print(f"Saved: {REPRESSORS_FILE}")
 
 
 
+# CHANGED: ambiguous repressors are kept as non-repressors (main excluded them from both classes)
 nonrepressors = df[
-    ~quality_normalized.isin(["repressor", "ambiguous repressor"])
+    quality_normalized != "repressor"
 ].copy()
 
 nonrepressors.to_csv(NONREPRESSORS_FILE, index=False)
@@ -151,8 +142,8 @@ print("Rows after duplicate removal:", len(df))
 print("Repressors (label 1):", len(repressors))
 print("Non-repressors (label 0):", len(nonrepressors))
 
-ambiguous_count = (quality_normalized == "ambiguous repressor").sum()
-print("Ambiguous repressors excluded:", ambiguous_count)
+ambiguous_count = (quality_normalized == "ambiguous_repressor").sum()
+print("Ambiguous repressors kept as non-repressors:", ambiguous_count)
 
 print("Final combined dataset:", len(final_df))
 

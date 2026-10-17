@@ -9,7 +9,7 @@ Public collection of Python pipelines and Jupyter notebooks for sequence-model a
 | `anya_repos/` | Per-experiment Python pipelines (activator plant/shared, yeast-specific, repressor variants). Each folder has a `README.md` with run order. |
 | `jacob_notebooks/` | XGBoost subset classifiers (`Anya_subset_xgb_*.ipynb`); notebook outputs cleared for version control. |
 | `data/` | Place shared annotated feature CSVs here (see `data/README.md`). |
-| `anya_repos/plot_classification_metrics.py` | Shared plotting helpers imported by the `annotatedfeaturesrun*.py` scripts. |
+| `anya_repos/*/plotting.py` | Figure helpers imported by each folder's `annotatedfeaturesrun*.py` script (same file in every folder). |
 
 Report: `anya_repos/ML_Sequence_Modeling_Report_August15.pdf`.
 
@@ -21,11 +21,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Run scripts from their project directory (or pass absolute paths where argparse supports it). Example:
+Run the scripts in the order listed in each folder's README. Settings (input files, number of folds,
+figure style) are constants at the top of each script. Example:
 
 ```bash
 cd anya_repos/yeast_shared1
-python annotatedfeaturesrunyeast.py --help
+python annotatedfeaturesrunyeast.py
 ```
 
 ## Data

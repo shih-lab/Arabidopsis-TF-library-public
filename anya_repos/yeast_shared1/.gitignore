@@ -1,8 +1,9 @@
 file_remove_activator_p.csv
 June26yeast_combined_activator_dataset1_finalData1.csv
 morffy_cleaned.xlsx
-shap_figures/performance_metrics_bar.svg
-shap_figures/shap_summary_bar.svg
-shap_figures/shap_summary_bar.svg
-shap_figures/shap_summary_beeswarm.svg
-shap_figures/truth_table.svg
+shap_figures_yeast_vs_shared/performance_metrics_bar.svg
+shap_figures_yeast_vs_shared/shap_summary_bar.svg
+shap_figures_yeast_vs_shared/shap_summary_bar.svg
+shap_figures_yeast_vs_shared/shap_summary_beeswarm.svg
+shap_figures_yeast_vs_shared/truth_table.svg
+__pycache__/

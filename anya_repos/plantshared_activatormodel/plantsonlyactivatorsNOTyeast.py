@@ -1,39 +1,17 @@
 import pandas as pd
 from pathlib import Path
-#description: getting plants only activators compared against yeast file in order to do plants only vs. shared activator comparison
+# CHANGED: file locations (main read and wrote everything in ~/Downloads)
+REPO_DIR = Path(__file__).resolve().parent     # this repo
+TF_LIBRARY_DIR = REPO_DIR.parent.parent        # TF_library folder (has data/ and the Morffy file)
+#description: getting plants only activators compared against yeast file in order to do plants only vs. shared activator comparison 
+#updated plantsonlyactivatorsNOTyeast.py
+activators = pd.read_csv(REPO_DIR / "activators_only_plantsdata_finaldata_june5.csv")
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-ACTIVATORS = SCRIPT_DIR / "activators_only_plantsdata_finaldata_june5.csv"
-MORFFY = Path("/Users/JSAlamos/Documents/Shih_lab/TF_library/Morffy_all_data.xlsx")
-CLEANED_OUT = SCRIPT_DIR / "activators_only_plantsdata_finaldata_june5_cleaned.csv"
-PLANT_ONLY_OUT = SCRIPT_DIR / "plantsOnlyActivatorsNOTyeast_finalData_june5.csv"
-
-activators = pd.read_csv(ACTIVATORS)
-fragments = pd.read_excel(MORFFY)
-
-#fragments = pd.read_excel("/Users/anyalachwani/Downloads/Morffy_all_data.xlsx")
-
-# Remove rows with missing PADI Score
-fragments = fragments.dropna(subset=["PADI Score"])
-
-print("Fragments after removing NaN PADI rows:", len(fragments))
-
-
-before_control = len(activators)
-
-activators = activators[
-    ~activators["#Feature"]
-        .astype(str)
-        .str.contains("control", case=False, na=False)
-]
-
-after_control = len(activators)
-
-print("Rows before removing controls:", before_control)
-print("Rows after removing controls:", after_control)
-print("Control rows removed:", before_control - after_control)
-
-
+activators = activators.drop_duplicates(
+    subset="#Feature",
+    keep="first"
+)
+fragments = pd.read_excel(TF_LIBRARY_DIR / "Morffy_all_data.xlsx")
 
 # Create sets
 feature_set = set(
@@ -44,13 +22,6 @@ morffy_set = set(
     fragments["Fragment Name"].astype(str).str.strip()
 )
 
-# Keep only activators that exist in Morffy
-activators = activators[
-    activators["#Feature"]
-        .astype(str)
-        .str.strip()
-        .isin(morffy_set)
-]
 
 print("Activators after removing non-Morffy features:", len(activators))
 print("Unique activators remaining:",
@@ -58,15 +29,13 @@ print("Unique activators remaining:",
 
 print("activators_length", len(activators))
 
-activators.to_csv(CLEANED_OUT, index=False)
+activators.to_csv(
+    REPO_DIR / "activators_only_plantsdata_finaldata_june5_cleaned.csv",
+    index=False
+)
 
-dups = activators["#Feature"].value_counts()
-dups = dups[dups > 1]
 
 
-print("Number of duplicated names:", len(dups))
-print("Extra duplicate rows:", dups.sum() - len(dups))
-print(dups.head(50))
 feature_set = set(
     activators["#Feature"].astype(str).str.strip()
 )
@@ -125,9 +94,10 @@ feature_set = set(activators["#Feature"].astype(str))
 #print("Matched rows with PADI < 1:", len(filtered_fragments))
 
 
-padi_le1_names = set(
+# CHANGED: < 1 instead of <= 1, so PADI = 1 counts as a yeast activator (Morffy et al.)
+padi_lt1_names = set(
     fragments.loc[
-        fragments["PADI Score"] <= 1,
+        fragments["PADI Score"] < 1,
         "Fragment Name"
     ].astype(str).str.strip()
 )
@@ -136,13 +106,16 @@ plant_only_activators = activators[
     activators["#Feature"]
         .astype(str)
         .str.strip()
-        .isin(padi_le1_names)
+        .isin(padi_lt1_names)
 ]
 
-plant_only_activators.to_csv(PLANT_ONLY_OUT, index=False)
+plant_only_activators.to_csv(
+    REPO_DIR / "plantsOnlyActivatorsNOTyeast_finalData_june5.csv",
+    index=False
+)
 
 print("Plant-only activator rows:",
       len(plant_only_activators))
 print("Plant-only unique activators:",
       plant_only_activators["#Feature"].nunique())
-print(f"Wrote: {PLANT_ONLY_OUT}")
+
