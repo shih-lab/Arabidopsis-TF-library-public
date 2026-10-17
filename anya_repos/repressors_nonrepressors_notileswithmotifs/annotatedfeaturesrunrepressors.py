@@ -149,6 +149,7 @@ batch_roc_curves = []         # (true labels, predicted probabilities) per batch
 batch_mean_abs_shap = []      # mean |SHAP| of each feature, per batch
 all_shap_values = []          # SHAP values of the explained held-out tiles (all batches)
 all_shap_tiles = []           # feature values of those tiles
+all_shap_preds = []           # predicted class of those tiles
 fold_top_features = []        # top 100 features chosen in each fold (all batches)
 fold_importances = []         # first-forest importance of every feature, per fold
 tile_scores = []              # P(repressor) of every tile, from models that never saw its TF
@@ -292,6 +293,7 @@ for batch_number in range(1, N_BATCHES + 1):
             n=min(N_SHAP_TILES_PER_FOLD, len(X_test_top)),
             random_state=seed
         )
+        pred_sample = pd.Series(model.predict(X_sample), index=X_sample.index)
         shap_values = explainer.shap_values(X_sample)
 
         # Binary classification: keep the SHAP values for label 1 (repressor)
@@ -306,6 +308,7 @@ for batch_number in range(1, N_BATCHES + 1):
         shap_all_features[top_features] = shap_values
         batch_shap_values.append(shap_all_features)
         all_shap_tiles.append(X.loc[X_sample.index, feature_cols])
+        all_shap_preds.append(pred_sample)
 
     # Performance of this batch: every tile was predicted by the model that did not see its TF
     cm = confusion_matrix(y, batch_predictions, labels=[0, 1])
@@ -440,6 +443,7 @@ order_idx = [feature_cols.index(feature) for feature in feature_order]
 
 shap_values = np.vstack(all_shap_values)[:, order_idx]
 X_shap = pd.concat(all_shap_tiles, ignore_index=True)[feature_order]
+pred_shap = pd.concat(all_shap_preds, ignore_index=True)
 
 print(f"\nSaving SHAP figures ({shap_values.shape[0]} tiles from {N_BATCHES} batches)...")
 
@@ -468,6 +472,11 @@ plotting.save_class_mean_shap_points(
     shap_values, X_shap, OUTPUT_DIR / "shap_summary_class_mean_points.svg",
     max_display=MAX_DISPLAY, figsize=(FIGSIZE[0] * 0.85 * 0.85, FIGSIZE[1]),
     cmap=CMAP, fontsize=FONT_SIZE,
+)
+plotting.save_shap_class_boxes(
+    shap_values, X_shap, pred_shap, OUTPUT_DIR / "shap_summary_class_boxes.svg",
+    class_names=CLASS_NAMES, max_display=15, figsize=FIGSIZE,
+    cmap="PRGn", fontsize=FONT_SIZE,
 )
 
 print("SHAP version:", shap.__version__)

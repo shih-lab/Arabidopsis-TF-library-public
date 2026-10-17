@@ -20,27 +20,24 @@
 import pandas as pd
 from pathlib import Path
 
-# CHANGED: file locations (main read and wrote everything in ~/Downloads)
-REPO_DIR = Path(__file__).resolve().parent     # this repo
-TF_LIBRARY_DIR = REPO_DIR.parent.parent        # TF_library folder (has data/)
+SCRIPT_DIR = Path(__file__).resolve().parent
+TF_LIBRARY_DATA = SCRIPT_DIR.parent.parent / "data"
 
+INPUT_FILE = TF_LIBRARY_DATA / "plant_TF_all_data_annotated_features.csv"
+REDUNDANT_DISORDER_COL = "Mean Disorder"
 
-INPUT_FILE = TF_LIBRARY_DIR / "data" / "all_data_6_2026_relaxed_annotated_features.csv"
-
-REPRESSORS_FILE = REPO_DIR / "repressors_past.csv"
-NONREPRESSORS_FILE = REPO_DIR / "nonrepressors_past.csv"
-FINAL_FILE = REPO_DIR / "repressors_nonrepressors.csv"
+REPRESSORS_FILE = SCRIPT_DIR / "repressors_past.csv"
+NONREPRESSORS_FILE = SCRIPT_DIR / "nonrepressors_past.csv"
+FINAL_FILE = SCRIPT_DIR / "repressors_nonrepressors.csv"
 
 FEATURE_COL = "#Feature"
 QUALITY_COL = "quality"
 
 RANDOM_STATE = 42
 df = pd.read_csv(INPUT_FILE)
-
-# CHANGED: remove control tiles ("control_..."); they are not TF sequence
 is_control = df[FEATURE_COL].astype(str).str.strip().str.lower().str.startswith("control_")
-df = df[~is_control].copy()
-print("Control tiles removed:", is_control.sum())
+df = df.loc[~is_control].copy()
+print("Removed control tiles (control_*):", int(is_control.sum()))
 
 print("Original number of rows:", len(df))
 
@@ -48,11 +45,9 @@ df = df.drop_duplicates(subset=[FEATURE_COL], keep="first").copy()
 
 print("Number of rows after removing duplicate #Feature values:", len(df))
 
-# CHANGED: "Mean Disorder" is dropped because it is redundant with tile_context_disorder
-if "Mean Disorder" in df.columns:
-    df = df.drop(columns=["Mean Disorder"])
-
-
+if REDUNDANT_DISORDER_COL in df.columns:
+    df = df.drop(columns=[REDUNDANT_DISORDER_COL])
+    print(f"Dropped redundant column: {REDUNDANT_DISORDER_COL}")
 
 quality_normalized = (
     df[QUALITY_COL]
@@ -73,9 +68,8 @@ print(f"Saved: {REPRESSORS_FILE}")
 
 
 
-# CHANGED: ambiguous repressors are kept as non-repressors (main excluded them from both classes)
 nonrepressors = df[
-    quality_normalized != "repressor"
+    ~quality_normalized.isin(["repressor", "ambiguous_repressor"])
 ].copy()
 
 nonrepressors.to_csv(NONREPRESSORS_FILE, index=False)
@@ -114,7 +108,7 @@ print("Repressors (label 1):", len(repressors))
 print("Non-repressors (label 0):", len(nonrepressors))
 
 ambiguous_count = (quality_normalized == "ambiguous_repressor").sum()
-print("Ambiguous repressors kept as non-repressors:", ambiguous_count)
+print("Ambiguous repressors excluded:", ambiguous_count)
 
 print("Final combined dataset:", len(final_df))
 

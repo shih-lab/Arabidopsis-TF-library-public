@@ -31,9 +31,6 @@ QUALITY_COL = "quality"
 
 RANDOM_STATE = 42
 df = pd.read_csv(INPUT_FILE)
-is_control = df[FEATURE_COL].astype(str).str.strip().str.lower().str.startswith("control_")
-df = df.loc[~is_control].copy()
-print("Removed control tiles (control_*):", int(is_control.sum()))
 
 print("Original number of rows:", len(df))
 

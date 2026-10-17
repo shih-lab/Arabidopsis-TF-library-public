@@ -48,6 +48,7 @@ CLASS_NAMES = ("plant-only", "shared")  # label 0, label 1
 N_FOLDS = 5                   # 5-fold cross-validation: each fold tests ~20% of the tiles
 N_TOP_FEATURES = 100          # features kept for the second random forest
 N_SHAP_TILES_PER_FOLD = 200   # held-out tiles explained with SHAP in each fold (1000 total)
+N_SHAP_CSV_FEATURES = 30      # most important features saved in the SHAP csv files
 RANDOM_STATE = 42
 
 # Figure settings
@@ -161,6 +162,7 @@ all_predictions = np.full(len(dataset), -1)
 all_scores = np.full(len(dataset), np.nan)   # predicted probability of class 1
 all_folds = np.zeros(len(dataset), dtype=int)
 
+fold_accuracies = []     # (training accuracy, testing accuracy) of each fold
 fold_top_features = []   # top 100 features chosen in each fold
 fold_importances = []    # first-forest importance of every feature, per fold
 shap_values_per_fold = []
@@ -191,6 +193,8 @@ for fold, (train_idx, test_idx) in enumerate(cv.split(X, y, groups), start=1):
     model = RandomForestClassifier(
         n_estimators=200,
         max_depth=10,
+        min_samples_leaf=5,     # CHANGED: added, to limit overfitting
+        min_samples_split=15,   # CHANGED: added, to limit overfitting
         n_jobs=-1,
         random_state=42,
         class_weight="balanced"  # CHANGED: added (main had no class weights)
@@ -226,6 +230,8 @@ for fold, (train_idx, test_idx) in enumerate(cv.split(X, y, groups), start=1):
     model = RandomForestClassifier(
         n_estimators=200,
         max_depth=10,
+        min_samples_leaf=5,     # CHANGED: added, to limit overfitting
+        min_samples_split=15,   # CHANGED: added, to limit overfitting
         n_jobs=-1,
         random_state=42,
         class_weight="balanced"  # CHANGED: added (main had no class weights)
@@ -236,7 +242,14 @@ for fold, (train_idx, test_idx) in enumerate(cv.split(X, y, groups), start=1):
     predictions = model.predict(X_test_top)
     scores = model.predict_proba(X_test_top)[:, 1]  # column 1 = probability of label 1
 
-    print("\nFold accuracy:", accuracy_score(y_test, predictions))
+    # Training accuracy is computed on the tiles the model was trained on; a much higher
+    # training than testing accuracy means the model memorizes the training tiles.
+    train_accuracy = accuracy_score(y_train, model.predict(X_train_top))
+    test_accuracy = accuracy_score(y_test, predictions)
+    fold_accuracies.append((train_accuracy, test_accuracy))
+
+    print("\nFold training accuracy:", round(train_accuracy, 3))
+    print("Fold testing accuracy:", round(test_accuracy, 3))
 
     # Save this fold's results for the held-out tiles
     all_predictions[test_idx] = predictions
@@ -282,6 +295,14 @@ for fold in range(1, N_FOLDS + 1):
     in_fold = all_folds == fold
     print(f"Fold {fold}: {in_fold.sum()} held-out tiles, "
           f"label counts {np.bincount(y_test[in_fold], minlength=2).tolist()}")
+
+print("\nTraining vs testing accuracy per fold:")
+for fold, (train_accuracy, test_accuracy) in enumerate(fold_accuracies, start=1):
+    print(f"Fold {fold}: training {train_accuracy:.3f}, testing {test_accuracy:.3f}, "
+          f"difference {train_accuracy - test_accuracy:.3f}")
+mean_train, mean_test = np.mean(fold_accuracies, axis=0)
+print(f"Mean:   training {mean_train:.3f}, testing {mean_test:.3f}, "
+      f"difference {mean_train - mean_test:.3f}")
 
 print("\nAccuracy:", accuracy_score(y_test, predictions))
 
@@ -344,12 +365,37 @@ print("\nSaving SHAP figures...")
 # SHAP values of the 1000 explained held-out tiles (200 per fold), all folds together.
 # Columns are sorted from most to least important (mean |SHAP|).
 # Positive SHAP values (right side of the plots) push a tile toward label 1.
-shap_values = pd.concat(shap_values_per_fold).to_numpy()
+shap_table = pd.concat(shap_values_per_fold)
+explained_tiles = shap_table.index   # dataset rows of the explained tiles
+shap_values = shap_table.to_numpy()
 X_sample = pd.concat(shap_tiles_per_fold).reset_index(drop=True)
 
 shap_order = np.argsort(-np.abs(shap_values).mean(axis=0))
 shap_values = shap_values[:, shap_order]
 X_sample = X_sample.iloc[:, shap_order]
+
+# Save the SHAP values and the feature values of the top features as two csv files with
+# the same rows (one per explained tile), to make other SHAP plots outside this script.
+top_shap_features = list(X_sample.columns[:N_SHAP_CSV_FEATURES])
+tile_info = pd.DataFrame({
+    "#Feature": dataset.loc[explained_tiles, "#Feature"].to_numpy(),
+    "label": y.loc[explained_tiles].to_numpy(),
+    "fold": all_folds[explained_tiles],
+})
+shap_csv = pd.concat(
+    [tile_info, pd.DataFrame(shap_values[:, :N_SHAP_CSV_FEATURES], columns=top_shap_features)],
+    axis=1,
+)
+values_csv = pd.concat(
+    [tile_info, X_sample[top_shap_features].reset_index(drop=True)],
+    axis=1,
+)
+shap_csv_path = OUTPUT_DIR / f"shap_values_top{N_SHAP_CSV_FEATURES}.csv"
+values_csv_path = OUTPUT_DIR / f"shap_feature_values_top{N_SHAP_CSV_FEATURES}.csv"
+shap_csv.to_csv(shap_csv_path, index=False)
+values_csv.to_csv(values_csv_path, index=False)
+print(f"Saved: {shap_csv_path}")
+print(f"Saved: {values_csv_path}")
 
 plotting.save_shap_beeswarm(
     shap_values, X_sample, OUTPUT_DIR / "shap_summary_beeswarm.svg",
@@ -370,6 +416,17 @@ plotting.save_class_mean_shap_points(
     shap_values, X_sample, OUTPUT_DIR / "shap_summary_class_mean_points.svg",
     max_display=MAX_DISPLAY, figsize=(FIGSIZE[0] * 0.85 * 0.85, FIGSIZE[1]),
     cmap=CMAP, fontsize=FONT_SIZE,
+)
+pred_shap = all_predictions[explained_tiles]
+plotting.save_shap_class_boxes(
+    shap_values, X_sample, pred_shap, OUTPUT_DIR / "shap_summary_class_boxes_top8.svg",
+    class_names=CLASS_NAMES, max_display=8, figsize=(1.8, 1),
+    cmap="PRGn", fontsize=FONT_SIZE,
+)
+plotting.save_shap_class_boxes(
+    shap_values, X_sample, pred_shap, OUTPUT_DIR / "shap_summary_class_boxes_rest.svg",
+    class_names=CLASS_NAMES, max_display=25, figsize=(1.8, 3),
+    cmap="PRGn", fontsize=FONT_SIZE, rank_start=8,
 )
 
 print("SHAP version:", shap.__version__)

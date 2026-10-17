@@ -342,8 +342,11 @@ print("\nSaving SHAP figures...")
 # SHAP values of the 1000 explained held-out tiles (200 per fold), all folds together.
 # Columns are sorted from most to least important (mean |SHAP|).
 # Positive SHAP values (right side of the plots) push a tile toward label 1.
-shap_values = pd.concat(shap_values_per_fold).to_numpy()
+shap_table = pd.concat(shap_values_per_fold)
+explained_tiles = shap_table.index   # dataset rows of the explained tiles
+shap_values = shap_table.to_numpy()
 X_sample = pd.concat(shap_tiles_per_fold).reset_index(drop=True)
+pred_shap = all_predictions[explained_tiles]
 
 shap_order = np.argsort(-np.abs(shap_values).mean(axis=0))
 shap_values = shap_values[:, shap_order]
@@ -368,6 +371,16 @@ plotting.save_class_mean_shap_points(
     shap_values, X_sample, OUTPUT_DIR / "shap_summary_class_mean_points.svg",
     max_display=MAX_DISPLAY, figsize=(FIGSIZE[0] * 0.85 * 0.85, FIGSIZE[1]),
     cmap=CMAP, fontsize=FONT_SIZE,
+)
+plotting.save_shap_class_boxes(
+    shap_values, X_sample, pred_shap, OUTPUT_DIR / "shap_summary_class_boxes_top8.svg",
+    class_names=CLASS_NAMES, max_display=8, figsize=(1.8, 1),
+    cmap="PRGn", fontsize=FONT_SIZE,
+)
+plotting.save_shap_class_boxes(
+    shap_values, X_sample, pred_shap, OUTPUT_DIR / "shap_summary_class_boxes_rest.svg",
+    class_names=CLASS_NAMES, max_display=25, figsize=(1.8, 3),
+    cmap="PRGn", fontsize=FONT_SIZE, rank_start=8,
 )
 
 print("SHAP version:", shap.__version__)

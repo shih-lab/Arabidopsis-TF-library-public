@@ -201,6 +201,90 @@ def save_class_mean_shap_points(shap_values, X, path, max_display, figsize, cmap
     print(f"Saved: {path}")
 
 
+def save_shap_class_boxes(
+    shap_values, X, y_pred, path, class_names, max_display, figsize, cmap, fontsize=7,
+):
+    """Box plots of SHAP values split by predicted class, colored by feature median.
+
+    For each feature: upper box = tiles classified as class 0, lower = class 1.
+    X is SHAP; color is the percentile rank of that class's median feature value
+    among all explained tiles. Boxes can cross zero.
+    """
+    shap_values = np.asarray(shap_values)
+    X_arr = np.asarray(X, dtype=float)
+    y_pred = np.asarray(y_pred)
+    feature_names = np.asarray(X.columns)
+
+    n_show = min(max_display, shap_values.shape[1])
+    order = np.argsort(np.abs(shap_values).mean(axis=0))[-n_show:]
+    cmap_obj = mpl.colormaps.get_cmap(cmap)
+    offset = 0.18
+
+    fig, ax = plt.subplots(figsize=figsize)
+    box_style = dict(
+        vert=False,
+        widths=0.3,
+        patch_artist=True,
+        showfliers=False,
+        showcaps=False,
+        boxprops=dict(linewidth=0.5),
+        whiskerprops=dict(linewidth=0.5),
+        medianprops=dict(color="black", linewidth=0.5),
+    )
+    for y_pos, feature_idx in enumerate(order):
+        shap_col = shap_values[:, feature_idx]
+        value_col = X_arr[:, feature_idx]
+        for pred_class, shift in ((0, offset), (1, -offset)):
+            in_class = y_pred == pred_class
+            if not in_class.any():
+                continue
+            median_value = np.nanmedian(value_col[in_class])
+            scaled = float(np.nanmean(value_col <= median_value))
+            boxes = ax.boxplot(
+                shap_col[in_class],
+                positions=[y_pos + shift],
+                **box_style,
+            )
+            boxes["boxes"][0].set_facecolor(cmap_obj(scaled))
+
+    ax.axvline(0, color="#999999", linewidth=0.5)
+    ax.set_yticks(np.arange(len(order)))
+    ax.set_yticklabels(feature_names[order])
+    ax.set_ylim(-0.6, len(order) - 0.4)
+    ax.set_xlabel("SHAP value")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    ax.plot([], [], color="0.3", linewidth=4, label=class_names[0] + " (upper)")
+    ax.plot([], [], color="0.3", linewidth=4, label=class_names[1] + " (lower)")
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=2,
+        frameon=False,
+        handlelength=1.0,
+        borderaxespad=0,
+    )
+
+    colorbar = fig.colorbar(
+        mpl.cm.ScalarMappable(norm=mpl.colors.Normalize(0, 1), cmap=cmap_obj),
+        ax=ax,
+        fraction=0.05,
+        pad=0.03,
+        aspect=30,
+    )
+    colorbar.set_ticks([0, 1])
+    colorbar.set_ticklabels(["Low", "High"])
+    colorbar.set_label("Feature median (percentile)", labelpad=-4)
+    colorbar.outline.set_linewidth(0.5)
+    colorbar.ax.tick_params(width=0.5, length=2)
+
+    apply_font_size(fig, fontsize=fontsize)
+    fig.savefig(path, format="svg", bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {path}")
+
+
 # ---------------------------------------------------------------------------
 # Performance figures: metrics barplot, truth table (confusion matrix), ROC curve
 # ---------------------------------------------------------------------------

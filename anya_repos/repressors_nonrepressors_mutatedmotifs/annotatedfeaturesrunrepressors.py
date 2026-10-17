@@ -1,330 +1,633 @@
-#annotatedfeaturesrunrepressors.py
-# Plant repressors (label 1) vs non-repressors (label 0), using the annotated features of
-# the motif-mutated sequences (the core residues of known repressor motifs were mutated).
-#
-# Batches are made as in run_repressors.py: every batch has all repressors plus an equal
-# number of randomly chosen non-repressors, and the number of batches is
-# (number of non-repressors) // (number of repressors). Lines marked "CHANGED:" differ from
-# run_repressors.py. The main differences are:
-#   1. Inside each batch, 5-fold cross-validation instead of one 70:30 train:test split.
-#      All tiles from the same TF are kept in the same fold. Overlapping tiles of one TF are
-#      very similar, so if some are in training and others in testing, the test score is too
-#      optimistic. Every tile of the batch is tested exactly once.
-#   2. Two random forests per fold, as in the activator models: the first one ranks the
-#      features and the second one is trained on the top 100. Dropping NaN columns and picking
-#      the top 100 is done inside each fold using only the training tiles.
-#   3. Every tile in the dataset gets a repressor score: the mean probability of "repressor"
-#      from all the fold models that never saw a tile from its TF (sequence_model_scores.csv).
-#   4. Disorder features are included (values from the mutated features file, because the
-#      mutations change the disorder of the mutated tiles).
-#   5. Results are averaged across batches, and figures are saved as SVG files (plotting.py).
-
-import re
+import argparse
+import sys
 from pathlib import Path
 
+import matplotlib as mpl
+mpl.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.collections import PathCollection
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    precision_recall_fscore_support,
+)
 import shap
 
-import plotting
+SCRIPT_DIR = Path(__file__).resolve().parent
+TF_LIBRARY_SCRIPTS = SCRIPT_DIR.parent.parent / "scripts"
+sys.path.insert(0, str(TF_LIBRARY_SCRIPTS))
+from plot_classification_metrics import save_performance_figures
 
-
-# ---------------------------------------------------------------------------
-# Settings
-# ---------------------------------------------------------------------------
-
-REPO_DIR = Path(__file__).resolve().parent
-
-# Dataset made by filterrepressors.py
-INPUT_FILE = REPO_DIR / "repressors_final__mutated.csv"
-OUTPUT_DIR = REPO_DIR / "shap_figures"
-
+DEFAULT_INPUT = SCRIPT_DIR / "repressors_final__mutated.csv"
+DEFAULT_OUTPUT_DIR = SCRIPT_DIR / "shap_figures"
+CLASS_NAMES = ("non-repressor", "repressor")
 LABEL_COL = "label"
-CLASS_NAMES = ("non-repressor", "repressor")  # label 0, label 1
-
+ID_COL = "#Feature"
+TF_ID_COL = "tf_id"
+QUALITY_COL = "quality"
+Z_COL = "z_log_enrichment_mean"
+SEQUENCE_COL_IDX = 14
+N_REPRESSORS = 2000
+TEST_SIZE = 0.20
 RANDOM_STATE = 42
-
-# CHANGED: 19 instead of 21 (run_repressors.py), because "Mean Disorder" was dropped by
-# filterrepressors.py and the disorder features are now included. Features start at
-# tile_context_disorder; columns 15-18 describe the mutation and are not features.
-FEATURE_START_IDX = 19
-
-N_FOLDS = 5                   # 5-fold cross-validation inside each batch
-N_TOP_FEATURES = 100          # features kept for the second random forest
-N_SHAP_TILES_PER_FOLD = 200   # held-out tiles explained with SHAP in each fold
-N_BEESWARM_TILES = 1000       # tiles drawn in the beeswarm plot (so the SVG stays small)
-
-# Figure settings
-FIGSIZE = (1.8, 1.8)          # inches
-FONT_SIZE = 7
-MARKER_SIZE = 5               # beeswarm dot size
-BEESWARM_CMAP = "magma"
-BEESWARM_MAX_DISPLAY = 25     # features shown in the beeswarm plot
-BEESWARM_HEIGHT_SCALE = 1.75  # beeswarm is taller than the other plots
-CMAP = "coolwarm"             # low/high feature value colors in the mean-SHAP plots
-MAX_DISPLAY = 15              # features shown in the other SHAP plots
-
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-plotting.apply_figure_style(fontsize=FONT_SIZE)
+TOP_N_FEATURES = 100
+SCORE_CSV_NAME = "sequence_model_scores.csv"
+# Mutation-tracking metadata; not biochemical features for the model.
+EXCLUDE_FEATURE_COLS = {
+    "protein_seq_wt",
+    "n_motif_core_positions_mutated",
+    "motif_mutation_success",
+    "had_canonical_motif",
+}
 
 
-# ---------------------------------------------------------------------------
-# Load the dataset
-# ---------------------------------------------------------------------------
+def apply_figure_style(fontsize=7):
+    plt.style.use("default")
+    mpl.rcParams["font.sans-serif"] = "Arial"
+    mpl.rcParams["font.family"] = "sans-serif"
+    mpl.rcParams["font.size"] = fontsize
+    mpl.rcParams["axes.labelsize"] = fontsize
+    mpl.rcParams["xtick.labelsize"] = fontsize
+    mpl.rcParams["ytick.labelsize"] = fontsize
+    mpl.rcParams["legend.fontsize"] = fontsize
+    mpl.rcParams["svg.fonttype"] = "none"
+    mpl.rcParams["axes.linewidth"] = 0.5
+    mpl.rcParams["xtick.major.width"] = 0.5
+    mpl.rcParams["ytick.major.width"] = 0.5
+    mpl.rcParams["xtick.minor.width"] = 0.5
+    mpl.rcParams["ytick.minor.width"] = 0.5
 
-df = pd.read_csv(INPUT_FILE)
 
-# Keep the label as the last column
-df = df[[c for c in df.columns if c != LABEL_COL] + [LABEL_COL]]
+def apply_font_size(fig, fontsize=7):
+    """SHAP hardcodes fontsize=13/11; override all text after plotting."""
+    for ax in fig.get_axes():
+        ax.title.set_fontsize(fontsize)
+        ax.xaxis.label.set_fontsize(fontsize)
+        ax.yaxis.label.set_fontsize(fontsize)
+        ax.tick_params(axis="both", labelsize=fontsize)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontsize(fontsize)
+        for text in ax.texts:
+            text.set_fontsize(fontsize)
 
 
-print("ORIGINAL DATASET")
+def plot_class_mean_shap_bars(
+    shap_values,
+    y,
+    feature_names,
+    class_names,
+    max_display,
+    figsize,
+    cmap,
+    fontsize,
+    path,
+):
+    """Average SHAP values by class and plot as diverging bars.
 
-print("Total rows:", len(df))
+    Class 0 means typically point left; class 1 means typically point right.
+    Feature order matches the beeswarm (mean |SHAP|).
+    """
+    shap_values = np.asarray(shap_values)
+    y = np.asarray(y)
+    feature_names = np.asarray(feature_names)
 
+    n_show = min(max_display, shap_values.shape[1])
+    order = np.argsort(np.abs(shap_values).mean(axis=0))[-n_show:]
+    names = feature_names[order]
+    class0_means = shap_values[y == 0][:, order].mean(axis=0)
+    class1_means = shap_values[y == 1][:, order].mean(axis=0)
+
+    cmap_obj = mpl.colormaps.get_cmap(cmap)
+    class0_color = cmap_obj(0.15)
+    class1_color = cmap_obj(0.85)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    y_pos = np.arange(len(names))
+    ax.barh(y_pos, class0_means, color=class0_color, height=0.65, label=class_names[0])
+    ax.barh(y_pos, class1_means, color=class1_color, height=0.65, label=class_names[1])
+    ax.axvline(0, color="#999999", linewidth=0.5)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(names)
+    ax.set_xlabel("mean SHAP value")
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=2,
+        frameon=False,
+        handlelength=1.0,
+        borderaxespad=0,
+    )
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    apply_font_size(fig, fontsize=fontsize)
+    fig.savefig(path, format="svg", bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_class_mean_shap_points(
+    shap_values,
+    y,
+    feature_names,
+    class_names,
+    max_display,
+    figsize,
+    cmap,
+    fontsize,
+    path,
+):
+    """Plot class-wise mean SHAP values as markers with SD error bars."""
+    shap_values = np.asarray(shap_values)
+    y = np.asarray(y)
+    feature_names = np.asarray(feature_names)
+
+    n_show = min(max_display, shap_values.shape[1])
+    order = np.argsort(np.abs(shap_values).mean(axis=0))[-n_show:]
+    names = feature_names[order]
+    class0 = shap_values[y == 0][:, order]
+    class1 = shap_values[y == 1][:, order]
+
+    cmap_obj = mpl.colormaps.get_cmap(cmap)
+    class0_color = cmap_obj(0.15)
+    class1_color = cmap_obj(0.85)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    y_pos = np.arange(len(names))
+    offset = 0.18
+    err_style = dict(
+        fmt="o",
+        markersize=2.5,
+        capsize=0,
+        elinewidth=0.5,
+        markeredgewidth=0.4,
+        linestyle="none",
+    )
+    ax.errorbar(
+        class0.mean(axis=0),
+        y_pos + offset,
+        xerr=class0.std(axis=0, ddof=1),
+        color=class0_color,
+        label=class_names[0],
+        **err_style,
+    )
+    ax.errorbar(
+        class1.mean(axis=0),
+        y_pos - offset,
+        xerr=class1.std(axis=0, ddof=1),
+        color=class1_color,
+        label=class_names[1],
+        **err_style,
+    )
+    ax.axvline(0, color="#999999", linewidth=0.5)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(names)
+    ax.set_xlabel("mean SHAP value ± SD")
+    ax.set_ylim(-0.6, len(names) - 0.4)
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=2,
+        frameon=False,
+        handlelength=1.0,
+        borderaxespad=0,
+    )
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    apply_font_size(fig, fontsize=fontsize)
+    fig.savefig(path, format="svg", bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_shap_class_boxes(
+    shap_values,
+    X,
+    y_pred,
+    feature_names,
+    class_names,
+    max_display,
+    figsize,
+    cmap,
+    fontsize,
+    path,
+):
+    """Box plots of SHAP values split by predicted class, colored by median feature value.
+
+    For each feature there are two boxes: tiles the model classified as class 0 (drawn
+    slightly above the row) and tiles classified as class 1 (slightly below). X is the
+    SHAP value of that feature; box color is the percentile rank of that class's median
+    feature value among all explained tiles (fraction of tiles with a lower or equal
+    value). Boxes can cross zero: a tile called "repressor" can still have a negative
+    SHAP for one feature.
+    """
+    shap_values = np.asarray(shap_values)
+    X = np.asarray(X, dtype=float)
+    y_pred = np.asarray(y_pred)
+    feature_names = np.asarray(feature_names)
+
+    n_show = min(max_display, shap_values.shape[1])
+    order = np.argsort(np.abs(shap_values).mean(axis=0))[-n_show:]
+    cmap_obj = mpl.colormaps.get_cmap(cmap)
+    offset = 0.18
+
+    fig, ax = plt.subplots(figsize=figsize)
+    box_style = dict(
+        vert=False,
+        widths=0.3,
+        patch_artist=True,
+        showfliers=False,
+        showcaps=False,
+        boxprops=dict(linewidth=0.5),
+        whiskerprops=dict(linewidth=0.5),
+        medianprops=dict(color="black", linewidth=0.5),
+    )
+    for y_pos, feature_idx in enumerate(order):
+        shap_col = shap_values[:, feature_idx]
+        value_col = X[:, feature_idx]
+        for pred_class, shift in ((0, offset), (1, -offset)):
+            in_class = y_pred == pred_class
+            if not in_class.any():
+                continue
+            median_value = np.nanmedian(value_col[in_class])
+            # Percentile rank of the class median among all tiles (0 = lowest, 1 = highest).
+            scaled = float(np.nanmean(value_col <= median_value))
+            boxes = ax.boxplot(
+                shap_col[in_class],
+                positions=[y_pos + shift],
+                **box_style,
+            )
+            boxes["boxes"][0].set_facecolor(cmap_obj(scaled))
+
+    ax.axvline(0, color="#999999", linewidth=0.5)
+    ax.set_yticks(np.arange(len(order)))
+    ax.set_yticklabels(feature_names[order])
+    ax.set_ylim(-0.6, len(order) - 0.4)
+    ax.set_xlabel("SHAP value")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Tiny legend: which row offset is which predicted class
+    ax.plot([], [], color="0.3", linewidth=4, label=class_names[0] + " (upper)")
+    ax.plot([], [], color="0.3", linewidth=4, label=class_names[1] + " (lower)")
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=2,
+        frameon=False,
+        handlelength=1.0,
+        borderaxespad=0,
+    )
+
+    colorbar = fig.colorbar(
+        mpl.cm.ScalarMappable(norm=mpl.colors.Normalize(0, 1), cmap=cmap_obj),
+        ax=ax,
+        fraction=0.05,
+        pad=0.03,
+        aspect=30,
+    )
+    colorbar.set_ticks([0, 1])
+    colorbar.set_ticklabels(["Low", "High"])
+    colorbar.set_label("Feature median (percentile)", labelpad=-4)
+    colorbar.outline.set_linewidth(0.5)
+    colorbar.ax.tick_params(width=0.5, length=2)
+
+    apply_font_size(fig, fontsize=fontsize)
+    fig.savefig(path, format="svg", bbox_inches="tight")
+    plt.close(fig)
+
+
+def save_vector_svg(path, fontsize=7, marker_size=5):
+    """Force vector markers and override SHAP's hardcoded font/marker sizes."""
+    fig = plt.gcf()
+    apply_font_size(fig, fontsize=fontsize)
+    for ax in fig.get_axes():
+        for collection in ax.collections:
+            collection.set_rasterized(False)
+            if isinstance(collection, PathCollection):
+                collection.set_sizes([marker_size])
+        for image in list(ax.images):
+            image.set_rasterized(False)
+        for artist in ax.get_children():
+            if hasattr(artist, "set_rasterized"):
+                artist.set_rasterized(False)
+    fig.savefig(path, format="svg", bbox_inches="tight")
+    plt.close(fig)
+
+
+def class1_shap(shap_values):
+    if isinstance(shap_values, list):
+        return shap_values[1]
+    return shap_values[:, :, 1]
+
+
+def select_global_features(repressors, nonrepressors, feature_cols, n_features):
+    """Pick a fixed top-N feature set once so SHAP columns align across batches."""
+    seed = RANDOM_STATE
+    n_rep = min(N_REPRESSORS, len(repressors))
+    n_non = min(n_rep, len(nonrepressors))
+    sample_df = pd.concat(
+        [
+            repressors.sample(n=n_rep, replace=False, random_state=seed),
+            nonrepressors.sample(n=n_non, replace=False, random_state=seed),
+        ],
+        ignore_index=True,
+    )
+    X = sample_df[feature_cols]
+    y = sample_df[LABEL_COL]
+    nan_cols = X.columns[X.isna().any()].tolist()
+    X = X.drop(columns=nan_cols)
+
+    model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=10,
+        n_jobs=-1,
+        random_state=seed,
+    )
+    model.fit(X, y)
+    importance_df = pd.DataFrame({
+        "Feature": X.columns,
+        "Importance": model.feature_importances_,
+    }).sort_values("Importance", ascending=False)
+    top_features = importance_df.head(n_features)["Feature"].tolist()
+    return top_features, nan_cols, importance_df
+
+
+def train_eval_shap_batch(batch_df, full_df, top_features, seed, batch_number):
+    X = batch_df[top_features]
+    y = batch_df[LABEL_COL]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=TEST_SIZE,
+        random_state=seed,
+        stratify=y,
+    )
+
+    model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=10,
+        n_jobs=-1,
+        random_state=seed,
+    )
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+    cm = confusion_matrix(y_test, predictions, labels=[0, 1])
+    acc = accuracy_score(y_test, predictions)
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        y_test, predictions, labels=[0, 1], zero_division=0
+    )
+    metrics = np.array([
+        acc,
+        precision[0],
+        recall[0],
+        f1[0],
+        precision[1],
+        recall[1],
+        f1[1],
+    ], dtype=float)
+
+    explainer = shap.TreeExplainer(model)
+    X_sample = X_test.sample(n=min(1000, len(X_test)), random_state=seed)
+    y_sample = y_test.loc[X_sample.index]
+    pred_sample = pd.Series(
+        model.predict(X_sample),
+        index=X_sample.index,
+    )
+    shap_for_plot = class1_shap(explainer.shap_values(X_sample))
+    mean_abs_shap = pd.Series(
+        np.abs(shap_for_plot).mean(axis=0),
+        index=X_sample.columns,
+    )
+
+    # Score every sequence with this batch model so IDs can be averaged later.
+    X_all = full_df[top_features].copy()
+    train_medians = X_train.median()
+    X_all = X_all.fillna(train_medians).fillna(0)
+    proba = model.predict_proba(X_all)
+    class1_idx = list(model.classes_).index(1)
+    score_df = pd.DataFrame({
+        ID_COL: full_df[ID_COL].values,
+        TF_ID_COL: full_df[TF_ID_COL].values if TF_ID_COL in full_df.columns else np.nan,
+        QUALITY_COL: full_df[QUALITY_COL].values if QUALITY_COL in full_df.columns else np.nan,
+        Z_COL: full_df[Z_COL].values if Z_COL in full_df.columns else np.nan,
+        LABEL_COL: full_df[LABEL_COL].values,
+        "batch": batch_number,
+        "score": proba[:, class1_idx],
+    })
+
+    return {
+        "cm": cm,
+        "metrics": metrics,
+        "predictions": predictions,
+        "y_test": y_test,
+        "X_sample": X_sample.reset_index(drop=True),
+        "y_sample": y_sample.reset_index(drop=True),
+        "pred_sample": pred_sample.reset_index(drop=True),
+        "shap_values": shap_for_plot,
+        "mean_abs_shap": mean_abs_shap,
+        "score_df": score_df,
+    }
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Train repressor vs non-repressor models across non-repressor "
+            "batches and save SHAP / performance plots."
+        )
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=DEFAULT_INPUT,
+        help="Path to combined repressor dataset CSV.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help="Directory to save SHAP figures.",
+    )
+    parser.add_argument(
+        "--figsize",
+        type=float,
+        nargs=2,
+        metavar=("WIDTH", "HEIGHT"),
+        default=(1.8, 1.8),
+        help="Figure size in inches (width height). Default: 1.8 1.8",
+    )
+    parser.add_argument(
+        "--cmap",
+        default="coolwarm",
+        help="Matplotlib colormap for the beeswarm plot. Default: coolwarm",
+    )
+    parser.add_argument(
+        "--max-display",
+        type=int,
+        default=15,
+        help="Number of top features to show in SHAP plots. Default: 15",
+    )
+    parser.add_argument(
+        "--font-size",
+        type=float,
+        default=7,
+        help="Font size for all plot text (pt). Default: 7",
+    )
+    parser.add_argument(
+        "--marker-size",
+        type=float,
+        default=5,
+        help="Beeswarm marker area in points^2 (matplotlib scatter s). Default: 5",
+    )
+    parser.add_argument(
+        "--n-batches",
+        type=int,
+        default=None,
+        help=(
+            "Number of non-repressor batches. Default: "
+            "floor(n_nonrepressors / n_repressors)."
+        ),
+    )
+    parser.add_argument(
+        "--beeswarm-sample",
+        type=int,
+        default=1000,
+        help=(
+            "Max points in the beeswarm SVG. Pooled SHAP is downsampled "
+            "to this many rows so Illustrator can open the file. Default: 1000"
+        ),
+    )
+    return parser.parse_args()
+
+
+args = parse_args()
+input_path = args.input.expanduser().resolve()
+output_dir = args.output_dir.expanduser().resolve()
+output_dir.mkdir(parents=True, exist_ok=True)
+figsize = tuple(args.figsize)
+cmap = args.cmap
+max_display = args.max_display
+font_size = args.font_size
+marker_size = args.marker_size
+beeswarm_sample = args.beeswarm_sample
+apply_figure_style(fontsize=font_size)
+
+if not input_path.is_file():
+    raise FileNotFoundError(
+        f"Input dataset not found: {input_path}\n"
+        "Run filterrepressors.py first, or pass the CSV path with --input."
+    )
+
+dataset = pd.read_csv(input_path)
+print("Dataset shape:", dataset.shape)
 print("\nLabel distribution:")
-print(df[LABEL_COL].value_counts())
+print(dataset[LABEL_COL].value_counts().sort_index())
 
+repressors = dataset[dataset[LABEL_COL] == 1].copy()
+nonrepressors = dataset[dataset[LABEL_COL] == 0].copy()
 
-repressors = df[df[LABEL_COL] == 1].copy()
+n_repressors_to_use = min(N_REPRESSORS, len(repressors))
+n_nonrepressors_to_use = min(n_repressors_to_use, len(nonrepressors))
+n_batches = args.n_batches
+if n_batches is None:
+    n_batches = max(1, len(nonrepressors) // max(len(repressors), 1))
 
-nonrepressors = df[df[LABEL_COL] == 0].copy()
-N_BATCHES = len(nonrepressors) // len(repressors)
+candidate_features = list(dataset.columns[SEQUENCE_COL_IDX + 1:-1])
+excluded = [col for col in candidate_features if col in EXCLUDE_FEATURE_COLS]
+if excluded:
+    print("Dropped mutation-metadata columns:", excluded)
+    candidate_features = [
+        col for col in candidate_features if col not in EXCLUDE_FEATURE_COLS
+    ]
+non_numeric = [
+    col for col in candidate_features
+    if not pd.api.types.is_numeric_dtype(dataset[col])
+]
+if non_numeric:
+    print("Dropped non-numeric feature columns:", non_numeric)
+    candidate_features = [
+        col for col in candidate_features if col not in non_numeric
+    ]
 
-# Features are everything from FEATURE_START_IDX up to (not including) the label column
-feature_cols = list(df.columns[FEATURE_START_IDX:-1])
-
-print("\nRepressors available:", len(repressors))
-print("Non-repressors available:", len(nonrepressors))
-print("Number of features:", len(feature_cols))
-print("First feature column:", feature_cols[0])
-
-
-# CHANGED: group the tiles by TF, so all tiles of one TF end up in the same fold.
-# Arabidopsis tile IDs start with the gene locus (e.g. AT1G01010_...). For other IDs we
-# use everything before the last "_".
-def get_tf_group(tile_id):
-    match = re.match(r"^(AT[1-5CM]G\d{5})", tile_id, flags=re.IGNORECASE)
-    if match:
-        return match.group(1).upper()
-    return tile_id.rsplit("_", 1)[0]
-
-
-all_groups = df["#Feature"].astype(str).apply(get_tf_group).to_numpy()
-
-print("Number of TFs (groups):", len(np.unique(all_groups)))
-
+print("\nSelecting global top features for aligned SHAP across batches...")
+top_features, dropped_nan_cols, importance_df = select_global_features(
+    repressors, nonrepressors, candidate_features, TOP_N_FEATURES
+)
+print("Dropped NaN columns:", len(dropped_nan_cols))
+print("Selected features:", len(top_features))
+print("\nTop 10 RF features:")
+print(importance_df.head(10))
 
 print("\nBATCH SETTINGS")
+print("Number of batches:", n_batches)
+print("Repressors per batch:", n_repressors_to_use)
+print("Non-repressors per batch:", n_nonrepressors_to_use)
+print("Sequence column:", dataset.columns[SEQUENCE_COL_IDX])
 
-print("Number of batches:", N_BATCHES)
-print("Repressors per batch:", len(repressors))
-print("Non-repressors per batch:", len(repressors))
-print("Total rows per batch:", 2 * len(repressors))
+batch_cms = []
+batch_metrics = []
+batch_mean_abs_shap = []
+pooled_shap = []
+pooled_X = []
+pooled_y = []
+pooled_pred = []
+batch_scores = []
+last_result = None
 
-
-# Results collected across batches
-batch_cms = []                # confusion matrix of each batch
-batch_metrics = []            # accuracy, precision/recall/F1 of each class, per batch
-batch_roc_curves = []         # (true labels, predicted probabilities) per batch
-batch_mean_abs_shap = []      # mean |SHAP| of each feature, per batch
-all_shap_values = []          # SHAP values of the explained held-out tiles (all batches)
-all_shap_tiles = []           # feature values of those tiles
-fold_top_features = []        # top 100 features chosen in each fold (all batches)
-fold_importances = []         # first-forest importance of every feature, per fold
-tile_scores = []              # P(repressor) of every tile, from models that never saw its TF
-
-
-for batch_number in range(1, N_BATCHES + 1):
-
-    print(f"\n========== BATCH {batch_number:02d} ==========")
+for batch_number in range(1, n_batches + 1):
+    print("\n" + "=" * 60)
+    print(f"BATCH {batch_number:02d}")
+    print("=" * 60)
 
     seed = RANDOM_STATE + batch_number
-
-    # All repressors (in random order) plus the same number of random non-repressors
     repressors_batch = repressors.sample(
-        n=len(repressors),
+        n=n_repressors_to_use,
         replace=False,
-        random_state=seed
+        random_state=seed,
     )
-
     nonrepressors_batch = nonrepressors.sample(
-        n=len(repressors),
+        n=n_nonrepressors_to_use,
         replace=False,
-        random_state=seed
+        random_state=seed,
     )
-
     batch_df = pd.concat(
-        [
-            repressors_batch,
-            nonrepressors_batch
-        ],
-        ignore_index=True
-    )
-
-    batch_df = batch_df.sample(
-        frac=1,
-        random_state=seed
-    ).reset_index(drop=True)
+        [repressors_batch, nonrepressors_batch],
+        ignore_index=True,
+    ).sample(frac=1, random_state=seed).reset_index(drop=True)
 
     print(
-        f"Batch {batch_number:02d}: "
         f"{len(repressors_batch)} repressors + "
-        f"{len(nonrepressors_batch)} non-repressors "
-        f"= {len(batch_df)} total"
+        f"{len(nonrepressors_batch)} non-repressors = {len(batch_df)} total"
     )
 
-    X = batch_df[feature_cols]
-    y = batch_df[LABEL_COL]
-    batch_groups = batch_df["#Feature"].astype(str).apply(get_tf_group)
-
-    # Filled in fold by fold; every tile of the batch gets one out-of-fold prediction
-    batch_predictions = np.full(len(batch_df), -1)
-    batch_scores = np.full(len(batch_df), np.nan)   # predicted probability of "repressor"
-    batch_shap_values = []
-
-    # -----------------------------------------------------------------------
-    # CHANGED: 5-fold cross-validation instead of one 70:30 train:test split.
-    # StratifiedGroupKFold keeps all tiles of a TF in one fold and keeps the class ratio
-    # similar across folds. Each fold: train on 4/5 of the TFs, test on the other 1/5.
-    # -----------------------------------------------------------------------
-
-    cv = StratifiedGroupKFold(n_splits=N_FOLDS, shuffle=True, random_state=seed)
-
-    for fold, (train_idx, test_idx) in enumerate(cv.split(X, y, batch_groups), start=1):
-
-        X_train = X.iloc[train_idx]
-        X_test = X.iloc[test_idx]
-        y_train = y.iloc[train_idx]
-        y_test = y.iloc[test_idx]
-
-        # CHANGED: columns with missing values are found in the training tiles only
-        nan_cols = X_train.columns[X_train.isna().any()].tolist()
-        X_train_no_nan = X_train.drop(columns=nan_cols)
-
-        # First random forest: rank the features
-        # (no class weights needed: the batch has the same number of tiles in each class)
-        model = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=10,
-            n_jobs=-1,
-            random_state=seed
-        )
-
-        model.fit(X_train_no_nan, y_train)
-
-        # Select Top 100 features using RF importance
-        importance_df = pd.DataFrame({
-            "Feature": X_train_no_nan.columns,
-            "Importance": model.feature_importances_
-        })
-
-        importance_df = importance_df.sort_values(
-            "Importance",
-            ascending=False
-        )
-
-        top_features = importance_df.head(N_TOP_FEATURES)["Feature"].tolist()
-
-        # Keep only the top 100 features
-        X_train_top = X_train[top_features]
-        # A few test tiles have missing values in a selected feature. They are filled with
-        # the median of the training tiles (or 0 if the whole training column is missing).
-        train_medians = X_train_top.median()
-        X_test_top = X_test[top_features].fillna(train_medians).fillna(0)
-
-        # Second random forest: trained on the top 100 features only
-        model = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=10,
-            n_jobs=-1,
-            random_state=seed
-        )
-
-        model.fit(X_train_top, y_train)
-
-        predictions = model.predict(X_test_top)
-        scores = model.predict_proba(X_test_top)[:, 1]  # column 1 = probability of label 1
-
-        print(f"Fold {fold}: {len(test_idx)} held-out tiles, "
-              f"accuracy {accuracy_score(y_test, predictions):.3f}")
-
-        batch_predictions[test_idx] = predictions
-        batch_scores[test_idx] = scores
-        fold_top_features.append(top_features)
-        fold_importances.append(importance_df.set_index("Feature")["Importance"])
-
-        # CHANGED: score every tile in the dataset whose TF was not in this fold's training
-        # tiles (so no tile is scored by a model that saw its own TF)
-        training_tfs = batch_groups.iloc[train_idx].unique()
-        unseen = ~np.isin(all_groups, training_tfs)
-        X_unseen = df.loc[unseen, top_features].fillna(train_medians).fillna(0)
-        tile_scores.append(pd.DataFrame({
-            "#Feature": df.loc[unseen, "#Feature"].to_numpy(),
-            "batch": batch_number,
-            "fold": fold,
-            "score": model.predict_proba(X_unseen)[:, 1],
-        }))
-
-        # SHAP on a random sample of this fold's held-out tiles
-        explainer = shap.TreeExplainer(model)
-
-        X_sample = X_test_top.sample(
-            n=min(N_SHAP_TILES_PER_FOLD, len(X_test_top)),
-            random_state=seed
-        )
-        shap_values = explainer.shap_values(X_sample)
-
-        # Binary classification: keep the SHAP values for label 1 (repressor)
-        if isinstance(shap_values, list):
-            shap_values = shap_values[1]
-        else:
-            shap_values = shap_values[:, :, 1]
-
-        # Each fold picks its own top 100, so we put the SHAP values in a table with all
-        # features. Features this fold's model did not use get SHAP = 0 (no effect).
-        shap_all_features = pd.DataFrame(0.0, index=X_sample.index, columns=feature_cols)
-        shap_all_features[top_features] = shap_values
-        batch_shap_values.append(shap_all_features)
-        all_shap_tiles.append(X.loc[X_sample.index, feature_cols])
-
-    # Performance of this batch: every tile was predicted by the model that did not see its TF
-    cm = confusion_matrix(y, batch_predictions, labels=[0, 1])
-    accuracy = accuracy_score(y, batch_predictions)
-    precision, recall, f1, _ = precision_recall_fscore_support(
-        y, batch_predictions, labels=[0, 1], zero_division=0
+    result = train_eval_shap_batch(
+        batch_df, dataset, top_features, seed, batch_number
     )
+    batch_cms.append(result["cm"])
+    batch_metrics.append(result["metrics"])
+    batch_mean_abs_shap.append(result["mean_abs_shap"])
+    pooled_shap.append(result["shap_values"])
+    pooled_X.append(result["X_sample"])
+    pooled_y.append(result["y_sample"])
+    pooled_pred.append(result["pred_sample"])
+    batch_scores.append(result["score_df"])
+    last_result = result
 
-    batch_cms.append(cm)
-    batch_metrics.append([accuracy, precision[0], recall[0], f1[0], precision[1], recall[1], f1[1]])
-    batch_roc_curves.append((y.to_numpy(), batch_scores))
-
-    batch_shap_values = pd.concat(batch_shap_values).to_numpy()
-    all_shap_values.append(batch_shap_values)
-    batch_mean_abs_shap.append(
-        pd.Series(np.abs(batch_shap_values).mean(axis=0), index=feature_cols)
-    )
-
-    print("Confusion matrix:\n", cm)
-    print("Accuracy:", round(accuracy, 5))
-
-
-# ---------------------------------------------------------------------------
-# Results averaged across batches
-# ---------------------------------------------------------------------------
+    print("Confusion matrix:\n", result["cm"])
+    print("Accuracy:", round(result["metrics"][0], 5))
 
 mean_cm = np.mean(np.stack(batch_cms, axis=0), axis=0)
-mean_metrics = np.mean(np.array(batch_metrics, dtype=float), axis=0)
+mean_metrics = np.mean(np.stack(batch_metrics, axis=0), axis=0)
 mean_abs_shap = (
     pd.concat(batch_mean_abs_shap, axis=1)
     .mean(axis=1)
     .sort_values(ascending=False)
 )
 
-print("\n========== All batches ==========")
 print("\nMean confusion matrix across batches:")
 print(mean_cm)
 print("\nMean metrics across batches:")
@@ -336,123 +639,152 @@ print(
 print("\nTop 15 mean |SHAP| features across batches:")
 print(mean_abs_shap.head(15))
 
-
-# How often each feature made the top 100 across all folds of all batches
-selection_counts = pd.Series(0, index=feature_cols, dtype=int)
-for top_features in fold_top_features:
-    selection_counts[top_features] += 1
-
-importance_table = pd.concat(fold_importances, axis=1)  # one column per fold
-mean_importance = importance_table.reindex(feature_cols).fillna(0).mean(axis=1)
-
-selection_df = pd.DataFrame({
-    "feature": feature_cols,
-    "n_folds_selected": selection_counts.values,
-    "fraction_folds_selected": selection_counts.values / len(fold_top_features),
-    "mean_rf_importance": mean_importance.values,
-})
-selection_df = selection_df.sort_values(
-    ["n_folds_selected", "mean_rf_importance"],
-    ascending=False
-).reset_index(drop=True)
-
-selection_path = OUTPUT_DIR / "feature_selection_frequency.csv"
-selection_df.to_csv(selection_path, index=False)
-print(f"\nSaved: {selection_path}")
-print(selection_df.head(10).to_string(index=False))
-
-
-# CHANGED: repressor score of every tile = mean P(repressor) over the fold models that never
-# saw its TF. Repressors are in every batch, so they get one score per batch; non-repressors
-# also get scores from batches they were not part of.
-print("\nSaving sequence scores (mean out-of-fold P(repressor))...")
-
-score_info_cols = ["tf_id", "quality", "z_log_enrichment_mean", LABEL_COL]
-tile_info = df.drop_duplicates(subset=["#Feature"])[["#Feature"] + score_info_cols]
-
-tile_scores = pd.concat(tile_scores, ignore_index=True)
+print("\nSaving sequence scores (mean P(repressor) across batches)...")
+scores_path = output_dir / SCORE_CSV_NAME
+all_scores = pd.concat(batch_scores, ignore_index=True)
 sequence_scores = (
-    tile_scores.groupby("#Feature", as_index=False)
+    all_scores.groupby(ID_COL, as_index=False)
     .agg(
+        tf_id=(TF_ID_COL, "first"),
+        quality=(QUALITY_COL, "first"),
+        z_log_enrichment_mean=(Z_COL, "first"),
+        label=(LABEL_COL, "first"),
         mean_score=("score", "mean"),
         std_score=("score", "std"),
-        n_models=("score", "size"),
         n_batches=("batch", "nunique"),
     )
-    .merge(tile_info, on="#Feature", how="left")
-    .sort_values([LABEL_COL, "mean_score"], ascending=[False, False])
+    .sort_values(["label", "mean_score"], ascending=[False, False])
     .reset_index(drop=True)
 )
-sequence_scores = sequence_scores[
-    ["#Feature"] + score_info_cols + ["mean_score", "std_score", "n_models", "n_batches"]
-]
-
-scores_path = OUTPUT_DIR / "sequence_model_scores.csv"
 sequence_scores.to_csv(scores_path, index=False)
 print(f"Saved: {scores_path}")
 print("Sequences scored:", len(sequence_scores))
 print(sequence_scores.head(10).to_string(index=False))
 
-
-# ---------------------------------------------------------------------------
-# Figures (saved as SVG in OUTPUT_DIR)
-# ---------------------------------------------------------------------------
-
-print("\nSaving performance figures (averaged across batches)...")
-
-plotting.save_metrics_barplot_from_values(
-    mean_metrics, OUTPUT_DIR / "performance_metrics_bar.svg",
+print("\nSaving performance figures (batch-averaged)...")
+save_performance_figures(
+    last_result["y_test"],
+    last_result["predictions"],
+    output_dir,
     class_names=CLASS_NAMES,
-    figsize=(max(FIGSIZE[0] * 2.5, 3.5), FIGSIZE[1]),  # wider, to fit the labels
-    fontsize=FONT_SIZE,
-)
-plotting.save_truth_table_from_cm(
-    mean_cm, OUTPUT_DIR / "truth_table.svg",
-    class_names=CLASS_NAMES, figsize=FIGSIZE, fontsize=FONT_SIZE,
-)
-plotting.save_mean_roc_curve(
-    batch_roc_curves, OUTPUT_DIR / "roc_curve.svg",
-    figsize=FIGSIZE, fontsize=FONT_SIZE,
+    figsize=figsize,
+    fontsize=font_size,
+    cm=mean_cm,
+    metric_values=mean_metrics,
 )
 
-# SHAP
-# SHAP values of the explained held-out tiles of all batches together (200 per fold).
-# Features are sorted by their mean |SHAP| averaged across batches.
-# Positive SHAP values (right side of the plots) push a tile toward "repressor".
+# Pool SHAP values from all batches; order features by batch-averaged mean |SHAP|.
 feature_order = mean_abs_shap.index.tolist()
-order_idx = [feature_cols.index(feature) for feature in feature_order]
+shap_for_plot = np.vstack(pooled_shap)
+X_for_plot = pd.concat(pooled_X, ignore_index=True)[feature_order]
+y_for_plot = pd.concat(pooled_y, ignore_index=True)
+pred_for_plot = pd.concat(pooled_pred, ignore_index=True)
+# Reorder SHAP columns to match averaged importance ranking.
+col_index = {feat: i for i, feat in enumerate(top_features)}
+order_idx = [col_index[feat] for feat in feature_order]
+shap_for_plot = shap_for_plot[:, order_idx]
 
-shap_values = np.vstack(all_shap_values)[:, order_idx]
-X_shap = pd.concat(all_shap_tiles, ignore_index=True)[feature_order]
-
-print(f"\nSaving SHAP figures ({shap_values.shape[0]} tiles from {N_BATCHES} batches)...")
-
-# The beeswarm draws one dot per tile and feature, so it only shows a random subset of tiles
-rng = np.random.default_rng(RANDOM_STATE)
-beeswarm_idx = np.sort(
-    rng.choice(shap_values.shape[0], size=min(N_BEESWARM_TILES, shap_values.shape[0]), replace=False)
+print(
+    f"\nRunning aggregated SHAP "
+    f"({shap_for_plot.shape[0]} samples from {n_batches} batches)..."
 )
 
-plotting.save_shap_beeswarm(
-    shap_values[beeswarm_idx], X_shap.iloc[beeswarm_idx], OUTPUT_DIR / "shap_summary_beeswarm.svg",
-    cmap=BEESWARM_CMAP, max_display=BEESWARM_MAX_DISPLAY,
-    figsize=FIGSIZE, height_scale=BEESWARM_HEIGHT_SCALE,
-    fontsize=FONT_SIZE, marker_size=MARKER_SIZE,
-)
-plotting.save_shap_bar(
-    shap_values, X_shap, OUTPUT_DIR / "shap_summary_bar.svg",
-    max_display=MAX_DISPLAY, figsize=FIGSIZE,
-    fontsize=FONT_SIZE, marker_size=MARKER_SIZE,
-)
-plotting.save_class_mean_shap_bars(
-    shap_values, X_shap, OUTPUT_DIR / "shap_summary_class_mean_bars.svg",
-    max_display=MAX_DISPLAY, figsize=FIGSIZE, cmap=CMAP, fontsize=FONT_SIZE,
-)
-plotting.save_class_mean_shap_points(
-    shap_values, X_shap, OUTPUT_DIR / "shap_summary_class_mean_points.svg",
-    max_display=MAX_DISPLAY, figsize=(FIGSIZE[0] * 0.85 * 0.85, FIGSIZE[1]),
-    cmap=CMAP, fontsize=FONT_SIZE,
-)
+n_beeswarm = min(beeswarm_sample, shap_for_plot.shape[0])
+if n_beeswarm < shap_for_plot.shape[0]:
+    rng = np.random.default_rng(RANDOM_STATE)
+    beeswarm_idx = np.sort(
+        rng.choice(shap_for_plot.shape[0], size=n_beeswarm, replace=False)
+    )
+    shap_beeswarm = shap_for_plot[beeswarm_idx]
+    X_beeswarm = X_for_plot.iloc[beeswarm_idx]
+    print(
+        f"Downsampled beeswarm from {shap_for_plot.shape[0]} "
+        f"to {n_beeswarm} points"
+    )
+else:
+    shap_beeswarm = shap_for_plot
+    X_beeswarm = X_for_plot
 
-print("SHAP version:", shap.__version__)
-print(f"\nFigures written to: {OUTPUT_DIR}")
+summary_path = output_dir / "shap_summary_beeswarm.svg"
+bar_path = output_dir / "shap_summary_bar.svg"
+class_mean_path = output_dir / "shap_summary_class_mean_bars.svg"
+class_mean_points_path = output_dir / "shap_summary_class_mean_points.svg"
+class_boxes_path = output_dir / "shap_summary_class_boxes.svg"
+
+shap.summary_plot(
+    shap_beeswarm,
+    X_beeswarm,
+    plot_type="dot",
+    cmap=cmap,
+    plot_size=figsize,
+    max_display=max_display,
+    show=False,
+)
+save_vector_svg(summary_path, fontsize=font_size, marker_size=marker_size)
+print(f"Saved: {summary_path}")
+
+shap.summary_plot(
+    shap_for_plot,
+    X_for_plot,
+    plot_type="bar",
+    plot_size=figsize,
+    max_display=max_display,
+    show=False,
+)
+save_vector_svg(bar_path, fontsize=font_size, marker_size=marker_size)
+print(f"Saved: {bar_path}")
+
+plot_class_mean_shap_bars(
+    shap_for_plot,
+    y_for_plot,
+    X_for_plot.columns,
+    CLASS_NAMES,
+    max_display=max_display,
+    figsize=figsize,
+    cmap=cmap,
+    fontsize=font_size,
+    path=class_mean_path,
+)
+print(f"Saved: {class_mean_path}")
+
+plot_class_mean_shap_points(
+    shap_for_plot,
+    y_for_plot,
+    X_for_plot.columns,
+    CLASS_NAMES,
+    max_display=max_display,
+    figsize=(figsize[0] * 0.85 * 0.85, figsize[1]),
+    cmap=cmap,
+    fontsize=font_size,
+    path=class_mean_points_path,
+)
+print(f"Saved: {class_mean_points_path}")
+
+plot_shap_class_boxes(
+    shap_for_plot,
+    X_for_plot,
+    pred_for_plot,
+    X_for_plot.columns,
+    CLASS_NAMES,
+    max_display=15,
+    figsize=figsize,
+    cmap="PRGn",
+    fontsize=font_size,
+    path=class_boxes_path,
+)
+print(f"Saved: {class_boxes_path}")
+
+print(f"\nFigures written to: {output_dir}")
+print(
+    f"n_batches={n_batches}, figsize={figsize}, cmap={cmap}, "
+    f"max_display={max_display}, font_size={font_size}, "
+    f"marker_size={marker_size}, beeswarm_sample={beeswarm_sample}"
+)
+print(
+    "Truth table / metrics / SHAP: aggregated across batches "
+    "(fixed top features; SHAP pooled over all batch test samples)."
+)
+print(
+    f"Sequence scores: mean P(repressor) from all {n_batches} batch models "
+    f"written to {SCORE_CSV_NAME}."
+)

@@ -201,6 +201,117 @@ def save_class_mean_shap_points(shap_values, X, path, max_display, figsize, cmap
     print(f"Saved: {path}")
 
 
+
+def save_shap_class_boxes(
+    shap_values, X, y_pred, path, class_names, max_display, figsize, cmap, fontsize=7,
+    rank_start=0,
+):
+    """Box plots of SHAP values split by predicted class, colored by feature median.
+
+    For each feature: upper box = tiles classified as class 0, lower = class 1.
+    Color is the percentile rank of that class's median feature value among all
+    explained tiles. Boxes can cross zero.
+
+    Features are ranked by mean |SHAP| (1 = strongest). Shows ranks
+    (rank_start + 1) through max_display. Example: rank_start=0, max_display=8
+    → top 8; rank_start=8, max_display=25 → ranks 9–25.
+    """
+    shap_values = np.asarray(shap_values)
+    X_arr = np.asarray(X, dtype=float)
+    y_pred = np.asarray(y_pred)
+    feature_names = np.asarray(X.columns)
+
+    n_end = min(max_display, shap_values.shape[1])
+    n_start = min(max(rank_start, 0), n_end)
+    if n_start >= n_end:
+        print(f"Skipping {path}: no features in rank slice ({n_start}, {n_end}]")
+        return
+
+    # top n_end features, ascending (weakest of this set first → bottom of plot)
+    top_ascending = np.argsort(np.abs(shap_values).mean(axis=0))[-n_end:]
+    # drop the strongest n_start from the top of the axis (= end of this array)
+    # keep ranks (n_start+1)..n_end → exclude last n_start entries if we want rest...
+    # top_ascending = [rank_n_end, ..., rank_2, rank_1]
+    # top 8 (ranks 1..8): top_ascending[-8:] if n_end>=8 and n_start==0 with max_display=8
+    # For rank_start=0, max_display=8: top_ascending has 8 elems, keep all.
+    # For rank_start=8, max_display=25: top_ascending has 25 elems [r25..r1];
+    #   ranks 9..25 = top_ascending[:-8] = [r25..r9]
+    n_keep_strongest_out = n_start  # number of strongest ranks to exclude from this panel
+    if n_keep_strongest_out > 0:
+        order = top_ascending[:-n_keep_strongest_out]
+    else:
+        order = top_ascending
+
+    cmap_obj = mpl.colormaps.get_cmap(cmap)
+    offset = 0.18
+
+    fig, ax = plt.subplots(figsize=figsize)
+    box_style = dict(
+        vert=False,
+        widths=0.3,
+        patch_artist=True,
+        showfliers=False,
+        showcaps=False,
+        boxprops=dict(linewidth=0.5),
+        whiskerprops=dict(linewidth=0.5),
+        medianprops=dict(color="black", linewidth=0.5),
+    )
+    for y_pos, feature_idx in enumerate(order):
+        shap_col = shap_values[:, feature_idx]
+        value_col = X_arr[:, feature_idx]
+        for pred_class, shift in ((0, offset), (1, -offset)):
+            in_class = y_pred == pred_class
+            if not in_class.any():
+                continue
+            median_value = np.nanmedian(value_col[in_class])
+            scaled = float(np.nanmean(value_col <= median_value))
+            boxes = ax.boxplot(
+                shap_col[in_class],
+                positions=[y_pos + shift],
+                **box_style,
+            )
+            boxes["boxes"][0].set_facecolor(cmap_obj(scaled))
+
+    ax.axvline(0, color="#999999", linewidth=0.5)
+    ax.set_yticks(np.arange(len(order)))
+    ax.set_yticklabels(feature_names[order])
+    ax.set_ylim(-0.6, len(order) - 0.4)
+    ax.set_xlabel("SHAP value")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    ax.plot([], [], color="0.3", linewidth=4, label=class_names[0] + " (upper)")
+    ax.plot([], [], color="0.3", linewidth=4, label=class_names[1] + " (lower)")
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=2,
+        frameon=False,
+        handlelength=1.0,
+        borderaxespad=0,
+    )
+
+    colorbar = fig.colorbar(
+        mpl.cm.ScalarMappable(norm=mpl.colors.Normalize(0, 1), cmap=cmap_obj),
+        ax=ax,
+        fraction=0.05,
+        pad=0.03,
+        aspect=30,
+    )
+    colorbar.set_ticks([0, 1])
+    colorbar.set_ticklabels(["Low", "High"])
+    colorbar.set_label("Feature median (percentile)", labelpad=-4)
+    colorbar.outline.set_linewidth(0.5)
+    colorbar.ax.tick_params(width=0.5, length=2)
+
+    apply_font_size(fig, fontsize=fontsize)
+    fig.savefig(path, format="svg", bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {path}  (ranks {n_start + 1}–{n_end}, {len(order)} features)")
+
+
+
+
 # ---------------------------------------------------------------------------
 # Performance figures: metrics barplot, truth table (confusion matrix), ROC curve
 # ---------------------------------------------------------------------------
